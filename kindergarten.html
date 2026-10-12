@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우리 반 하루 도우미</title>
+    <style>
+        :root {
+            --bg: #fff8ec;
+            --card: #ffffff;
+            --ink: #3b3a36;
+            --muted: #8a8578;
+            --line: #efe4cf;
+            --primary: #ff8a5b;
+            --primary-dark: #e86f3f;
+            --green: #4cb782;
+            --green-soft: #e3f6ec;
+            --red: #e5646a;
+            --red-soft: #fde7e8;
+            --yellow: #f4b740;
+            --yellow-soft: #fff2d3;
+            --blue: #5b9dff;
+            --blue-soft: #e5efff;
+            --radius: 18px;
+            --shadow: 0 4px 14px rgba(120, 90, 40, 0.10);
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; }
+        body {
+            background: var(--bg);
+            color: var(--ink);
+            font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            flex-direction: column;
+        }
+        button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+        input, select, textarea { font: inherit; color: inherit; }
+
+        /* 상단 */
+        header {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 12px 16px; background: var(--card); border-bottom: 2px solid var(--line);
+        }
+        .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .brand .logo { font-size: 30px; }
+        .brand h1 { margin: 0; font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .brand .today { font-size: 13px; color: var(--muted); }
+        .icon-btn {
+            width: 44px; height: 44px; border-radius: 12px; font-size: 22px;
+            background: var(--bg); flex-shrink: 0;
+        }
+
+        nav {
+            display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto;
+            background: var(--card); border-bottom: 2px solid var(--line);
+        }
+        nav button {
+            flex-shrink: 0; padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 15px;
+            background: var(--bg); color: var(--muted);
+        }
+        nav button.active { background: var(--primary); color: #fff; }
+
+        main { flex: 1; overflow-y: auto; padding: 16px; }
+        .panel { display: none; max-width: 1100px; margin: 0 auto; }
+        .panel.active { display: block; }
+
+        .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+        .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .spacer { flex: 1; }
+        .section-title { margin: 0 0 12px; font-size: 18px; }
+        .hint { color: var(--muted); font-size: 14px; }
+
+        .btn {
+            padding: 12px 18px; border-radius: 14px; font-weight: 700; font-size: 15px;
+            background: var(--bg); min-height: 46px;
+        }
+        .btn.primary { background: var(--primary); color: #fff; }
+        .btn.primary:active { background: var(--primary-dark); }
+        .btn.green { background: var(--green); color: #fff; }
+        .btn.red { background: var(--red); color: #fff; }
+        .btn.small { padding: 8px 12px; min-height: 38px; font-size: 14px; }
+
+        .empty {
+            text-align: center; padding: 40px 16px; color: var(--muted);
+        }
+        .empty .big { font-size: 48px; display: block; margin-bottom: 8px; }
+
+        /* 출석 */
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+        .stat { border-radius: 16px; padding: 12px; text-align: center; font-weight: 700; }
+        .stat b { display: block; font-size: 28px; }
+        .stat.present { background: var(--green-soft); color: var(--green); }
+        .stat.absent { background: var(--red-soft); color: var(--red); }
+        .stat.unknown { background: var(--yellow-soft); color: #b98410; }
+
+        .kid-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+        .kid {
+            position: relative; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+            padding: 14px 8px; text-align: center; border: 3px solid transparent; transition: transform .1s;
+        }
+        .kid:active { transform: scale(0.96); }
+        .kid .face { font-size: 44px; line-height: 1.1; }
+        .kid .name { font-weight: 800; font-size: 18px; margin-top: 6px; word-break: keep-all; }
+        .kid .tag { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--yellow-soft); color: #b98410; }
+        .kid.present { border-color: var(--green); }
+        .kid.present .tag { background: var(--green-soft); color: var(--green); }
+        .kid.absent { border-color: var(--red); opacity: .7; }
+        .kid.absent .tag { background: var(--red-soft); color: var(--red); }
+
+        /* 일과표 */
+        .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+        .sched {
+            display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 12px; border: 3px solid transparent;
+        }
+        .sched .emoji { font-size: 40px; width: 56px; text-align: center; flex-shrink: 0; }
+        .sched .info { flex: 1; min-width: 0; }
+        .sched .title { font-weight: 800; font-size: 18px; }
+        .sched .time { color: var(--muted); font-size: 14px; }
+        .sched.done { opacity: .5; }
+        .sched.done .title { text-decoration: line-through; }
+        .sched.now { border-color: var(--primary); background: #fff3ec; }
+        .sched .now-badge { background: var(--primary); color: #fff; font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+        .sched .tools { display: flex; gap: 4px; }
+        .sched .tools button { width: 38px; height: 38px; border-radius: 10px; background: var(--bg); font-size: 16px; }
+        .check {
+            width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--line); font-size: 22px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; color: #fff;
+        }
+        .sched.done .check { background: var(--green); border-color: var(--green); }
+
+        .preset-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip { padding: 8px 12px; border-radius: 999px; background: var(--bg); font-weight: 700; font-size: 14px; }
+
+        .form-grid { display: grid; grid-template-columns: 90px 1fr 130px auto; gap: 8px; align-items: center; }
+        .field {
+            width: 100%; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); background: #fff; min-height: 46px;
+        }
+
+        /* 타이머 */
+        .timer-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; }
+        .timer-face { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+        .dial {
+            --p: 1; --c: var(--green);
+            width: min(70vw, 360px); aspect-ratio: 1; border-radius: 50%;
+            background: conic-gradient(var(--c) calc(var(--p) * 360deg), #f1ebe0 0);
+            display: flex; align-items: center; justify-content: center; transition: background .2s;
+        }
+        .dial-inner {
+            width: 78%; aspect-ratio: 1; border-radius: 50%; background: var(--card);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .digits { font-size: clamp(44px, 10vw, 76px); font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+        .timer-label { font-size: 18px; color: var(--muted); font-weight: 700; margin-top: 4px; text-align: center; padding: 0 12px; }
+        .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .presets .btn { padding: 12px 6px; }
+        .stepper { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .stepper span { font-weight: 800; font-size: 20px; }
+
+        /* 이름 뽑기 */
+        .picker-stage {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 300px; text-align: center; padding: 24px;
+        }
+        .picker-face { font-size: 90px; line-height: 1; }
+        .picker-name { font-size: clamp(40px, 9vw, 72px); font-weight: 900; margin-top: 10px; min-height: 1.2em; }
+        .picker-name.rolling { color: var(--muted); }
+        .picker-name.chosen { color: var(--primary); animation: pop .5s ease; }
+        @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        .history { display: flex; flex-wrap: wrap; gap: 6px; }
+        .toggle { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; cursor: pointer; }
+        .toggle input { width: 22px; height: 22px; accent-color: var(--primary); }
+
+        /* 칭찬 스티커 */
+        .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+        .sticker-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; }
+        .sticker-card.goal { background: #fff6d8; outline: 3px solid var(--yellow); }
+        .sticker-head { display: flex; align-items: center; gap: 8px; }
+        .sticker-head .face { font-size: 32px; }
+        .sticker-head .name { font-weight: 800; font-size: 18px; flex: 1; }
+        .sticker-head .count { font-weight: 800; color: var(--primary); }
+        .slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0; }
+        .slot {
+            aspect-ratio: 1; border-radius: 50%; border: 2px dashed var(--line);
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+        }
+        .slot.on { border: none; background: var(--yellow-soft); }
+        .slot.new { animation: pop .45s ease; }
+        .sticker-actions { display: flex; gap: 8px; }
+        .sticker-actions .btn { flex: 1; }
+
+        /* 설정 */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .roster { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+        .roster-item { display: flex; align-items: center; gap: 8px; background: var(--bg); border-radius: 12px; padding: 6px 8px; }
+        .roster-item .face { font-size: 26px; width: 40px; height: 40px; border-radius: 10px; background: #fff; }
+        .roster-item .name { flex: 1; font-weight: 700; }
+        .roster-item button.del { width: 38px; height: 38px; border-radius: 10px; color: var(--red); font-size: 18px; }
+        textarea.field { min-height: 120px; resize: vertical; }
+
+        /* 크게 보여주기 */
+        .overlay {
+            position: fixed; inset: 0; background: var(--bg); z-index: 50; display: none;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px;
+        }
+        .overlay.show { display: flex; }
+        .overlay .close { position: absolute; top: 16px; right: 16px; }
+        .show-label { font-size: 26px; font-weight: 800; color: var(--primary); }
+        .show-emoji { font-size: min(36vw, 260px); line-height: 1.1; }
+        .show-title { font-size: clamp(40px, 9vw, 96px); font-weight: 900; }
+        .show-next { margin-top: 18px; font-size: 24px; color: var(--muted); font-weight: 700; }
+
+        .confetti { position: fixed; top: -40px; font-size: 28px; z-index: 60; pointer-events: none; animation: fall linear forwards; }
+        @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
+
+        .toast {
+            position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(120px);
+            background: var(--ink); color: #fff; padding: 12px 20px; border-radius: 999px; font-weight: 700;
+            transition: transform .25s; z-index: 70; max-width: calc(100% - 32px);
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* 관찰·알림장 */
+        .obs-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+        .kid-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+        .kid-pick button { padding: 6px 10px; border-radius: 12px; background: var(--bg); font-weight: 700; border: 2px solid transparent; }
+        .kid-pick button.on { border-color: var(--primary); background: #fff3ec; }
+        .area-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .area { padding: 7px 12px; border-radius: 999px; font-weight: 800; font-size: 14px; border: 2px solid var(--a); color: var(--a); background: #fff; }
+        .area.on { background: var(--a); color: #fff; }
+        .area-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 800; color: #fff; background: var(--a); margin-right: 4px; }
+        .phrases { display: flex; flex-direction: column; gap: 6px; max-height: 190px; overflow-y: auto; }
+        .phrases button { text-align: left; padding: 8px 10px; border-radius: 10px; background: var(--bg); font-size: 14px; }
+        .obs-list { display: flex; flex-direction: column; gap: 8px; max-height: 460px; overflow-y: auto; }
+        .obs-item { background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+        .obs-item .meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+        .obs-item .meta b { color: var(--ink); font-size: 15px; }
+        .obs-item .text { margin-top: 6px; white-space: pre-wrap; word-break: keep-all; }
+        .obs-item .del { margin-left: auto; color: var(--red); font-size: 14px; padding: 4px 8px; }
+        .balance { display: grid; grid-template-columns: 110px 1fr 28px; gap: 6px 8px; align-items: center; font-size: 14px; font-weight: 700; }
+        .bar { height: 14px; border-radius: 999px; background: #f1ebe0; overflow: hidden; }
+        .bar i { display: block; height: 100%; background: var(--a); border-radius: 999px; }
+        .notice-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+        .stack { display: flex; flex-direction: column; gap: 8px; }
+        textarea.notice-out { min-height: 340px; line-height: 1.6; }
+
+        /* STEAM 놀이 */
+        .seg { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .seg button { padding: 12px 18px; border-radius: 14px; font-weight: 800; font-size: 16px; background: var(--card); box-shadow: var(--shadow); }
+        .seg button.on { background: var(--blue); color: #fff; }
+        .steam-act { display: none; }
+        .steam-act.on { display: block; }
+        #panel-steam:fullscreen { background: var(--bg); overflow-y: auto; padding: 16px; max-width: none; }
+        .tip { margin-top: 16px; background: var(--blue-soft); border-radius: var(--radius); padding: 14px 16px; font-size: 15px; line-height: 1.6; }
+        .tip h4 { margin: 0 0 6px; color: var(--blue); }
+        .tip ul { margin: 4px 0 0; padding-left: 20px; }
+
+        .mix-stage { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 20px; }
+        .pots { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+        .pot { width: 78px; height: 78px; border-radius: 50%; background: var(--pc); box-shadow: inset 0 -6px 0 rgba(0,0,0,.12), var(--shadow); border: 4px solid #fff; font-weight: 800; font-size: 14px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+        .pot:active { transform: scale(.92); }
+        .bowl-wrap { position: relative; width: min(64vw, 260px); aspect-ratio: 1; }
+        .bowl { width: 100%; height: 100%; border-radius: 50%; border: 10px solid #e9dfcc; background: #fdfaf4; transition: background .5s; box-shadow: inset 0 10px 24px rgba(0,0,0,.10); }
+        .drop { position: absolute; left: 50%; top: -30px; width: 26px; height: 26px; margin-left: -13px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); animation: dropfall .5s ease-in forwards; }
+        @keyframes dropfall { to { top: 45%; opacity: 0; } }
+        .mix-name { font-size: clamp(28px, 6vw, 44px); font-weight: 900; text-align: center; }
+        .mix-count { color: var(--muted); font-weight: 700; text-align: center; }
+        .swatches { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .swatch { width: 44px; height: 44px; border-radius: 12px; border: 3px solid #fff; box-shadow: var(--shadow); }
+
+        .xylo { display: flex; gap: 8px; align-items: flex-end; justify-content: center; padding: 20px 8px; touch-action: none; user-select: none; }
+        .bar-key { flex: 1; max-width: 80px; border-radius: 14px; background: var(--kc); color: #fff; font-weight: 900; font-size: 20px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 12px; box-shadow: inset 0 -8px 0 rgba(0,0,0,.15); text-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .08s; }
+        .bar-key.hit { transform: translateY(6px) scale(.97); filter: brightness(1.15); }
+        .wave-pad { width: 100%; height: 280px; border-radius: var(--radius); background: #1f2a44; touch-action: none; display: block; cursor: crosshair; }
+        .wave-info { display: flex; justify-content: space-between; color: var(--muted); font-weight: 700; margin-top: 8px; font-size: 14px; }
+
+        .pattern-stage { text-align: center; padding: 24px 12px; }
+        .pattern-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; font-size: clamp(36px, 8vw, 64px); }
+        .pattern-row .q { width: 1.3em; height: 1.3em; border-radius: 16px; border: 4px dashed var(--primary); display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 900; font-size: .7em; }
+        .choices { display: flex; justify-content: center; gap: 14px; margin-top: 24px; flex-wrap: wrap; }
+        .choices button { font-size: clamp(40px, 9vw, 64px); width: 1.8em; height: 1.8em; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
+        .choices button.wrong { animation: shake .4s; background: var(--red-soft); }
+        .choices button.right { background: var(--green-soft); }
+        @keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        .pattern-msg { min-height: 1.6em; margin-top: 16px; font-size: 22px; font-weight: 800; }
+
+        @media (max-width: 760px) {
+            .obs-grid, .notice-grid { grid-template-columns: 1fr; }
+            .pot { width: 62px; height: 62px; font-size: 12px; }
+            .bar-key { font-size: 15px; }
+        }
+
+        @media (max-width: 760px) {
+            .timer-wrap, .settings-grid { grid-template-columns: 1fr; }
+            .form-grid { grid-template-columns: 70px 1fr; }
+            .form-grid .time-field { grid-column: 1 / 2; }
+            .form-grid .btn { grid-column: 2 / 3; }
+            .sched .tools button { width: 34px; height: 34px; }
+            .kid-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <span class="logo">🌈</span>
+        <div style="min-width:0">
+            <h1 id="class-title">우리 반 하루 도우미</h1>
+            <div class="today" id="today-label"></div>
+        </div>
+    </div>
+    <button class="icon-btn" id="btn-sound" title="소리 켜기/끄기">🔔</button>
+</header>
+
+<nav id="tabs">
+    <button data-tab="attendance" class="active">🙋 출석</button>
+    <button data-tab="schedule">🗓️ 오늘 일과</button>
+    <button data-tab="timer">⏰ 타이머</button>
+    <button data-tab="picker">🎯 이름 뽑기</button>
+    <button data-tab="stickers">⭐ 칭찬 스티커</button>
+    <button data-tab="observe">📝 관찰·알림장</button>
+    <button data-tab="steam">🧪 STEAM 놀이</button>
+    <button data-tab="settings">⚙️ 우리 반 설정</button>
+</nav>
+
+<main>
+    <!-- 출석 -->
+    <section class="panel active" id="panel-attendance">
+        <div class="row" style="margin-bottom:12px">
+            <input type="date" id="att-date" class="field" style="width:auto">
+            <span class="hint">카드를 누르면 확인 전 → 등원 → 결석 순서로 바뀌어요.</span>
+            <span class="spacer"></span>
+            <button class="btn green" id="btn-all-present">모두 등원</button>
+            <button class="btn" id="btn-att-reset">다시 체크</button>
+        </div>
+        <div class="stats">
+            <div class="stat present">등원<b id="cnt-present">0</b></div>
+            <div class="stat absent">결석<b id="cnt-absent">0</b></div>
+            <div class="stat unknown">확인 전<b id="cnt-unknown">0</b></div>
+        </div>
+        <div class="kid-grid" id="att-grid"></div>
+    </section>
+
+    <!-- 일과표 -->
+    <section class="panel" id="panel-schedule">
+        <div class="row" style="margin-bottom:12px">
+            <h2 class="section-title" style="margin:0">오늘의 일과</h2>
+            <span class="spacer"></span>
+            <button class="btn" id="btn-sched-reset">체크 모두 지우기</button>
+            <button class="btn green" id="btn-sched-next">다음 활동으로 ▶</button>
+            <button class="btn primary" id="btn-sched-show">📺 아이들에게 크게 보여주기</button>
+        </div>
+        <div class="schedule-list" id="sched-list"></div>
+
+        <div class="card" style="margin-top:16px">
+            <h3 class="section-title">활동 추가하기</h3>
+            <div class="form-grid">
+                <input class="field" id="sched-emoji" maxlength="4" placeholder="🧸" style="text-align:center;font-size:22px">
+                <input class="field" id="sched-title" maxlength="20" placeholder="활동 이름 (예: 자유놀이)">
+                <input class="field time-field" id="sched-time" type="time">
+                <button class="btn primary" id="btn-sched-add">추가</button>
+            </div>
+            <p class="hint" style="margin:12px 0 8px">자주 쓰는 활동을 눌러 바로 넣을 수 있어요.</p>
+            <div class="preset-chips" id="sched-presets"></div>
+        </div>
+    </section>
+
+    <!-- 타이머 -->
+    <section class="panel" id="panel-timer">
+        <div class="timer-wrap">
+            <div class="card timer-face">
+                <div class="dial" id="dial">
+                    <div class="dial-inner">
+                        <div class="digits" id="digits">05:00</div>
+                        <div class="timer-label" id="timer-label-view">정리 시간</div>
+                    </div>
+                </div>
+                <div class="row" style="margin-top:20px;justify-content:center">
+                    <button class="btn primary" id="btn-timer-start" style="min-width:120px">▶ 시작</button>
+                    <button class="btn" id="btn-timer-reset">↺ 처음부터</button>
+                    <button class="btn" id="btn-timer-full">📺 크게</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3 class="section-title">무엇을 하는 시간인가요?</h3>
+                <input class="field" id="timer-label" maxlength="20" value="정리 시간">
+                <div class="preset-chips" id="timer-label-presets" style="margin-top:8px"></div>
+                <h3 class="section-title" style="margin-top:18px">시간 고르기</h3>
+                <div class="presets" id="timer-presets"></div>
+                <div class="stepper" style="margin-top:12px">
+                    <button class="btn" data-step="-60">− 1분</button>
+                    <span id="timer-set">5분</span>
+                    <button class="btn" data-step="60">+ 1분</button>
+                </div>
+                <p class="hint">시간이 줄어들수록 초록 → 노랑 → 빨강으로 바뀌어 아이들이 남은 시간을 눈으로 알 수 있어요.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 이름 뽑기 -->
+    <section class="panel" id="panel-picker">
+        <div class="card picker-stage">
+            <div class="picker-face" id="picker-face">🎁</div>
+            <div class="picker-name" id="picker-name">누가 뽑힐까요?</div>
+            <button class="btn primary" id="btn-pick" style="margin-top:20px;font-size:20px;padding:16px 36px">🎯 뽑기!</button>
+        </div>
+        <div class="card" style="margin-top:16px">
+            <div class="row">
+                <label class="toggle"><input type="checkbox" id="pick-present" checked> 등원한 친구만</label>
+                <label class="toggle"><input type="checkbox" id="pick-norepeat" checked> 한 번 뽑힌 친구는 빼기</label>
+                <span class="spacer"></span>
+                <span class="hint" id="pick-remaining"></span>
+                <button class="btn small" id="btn-pick-reset">처음부터 다시</button>
+            </div>
+            <div class="history" id="pick-history" style="margin-top:12px"></div>
+        </div>
+    </section>
+
+    <!-- 칭찬 스티커 -->
+    <section class="panel" id="panel-stickers">
+        <div class="row" style="margin-bottom:12px">
+            <span class="hint">스티커를 모두 모으면 축하해 주어요!</span>
+            <span class="spacer"></span>
+            <label class="toggle">목표
+                <select class="field" id="sticker-goal" style="width:auto;min-height:40px;padding:6px 10px">
+                    <option value="5">5개</option>
+                    <option value="10">10개</option>
+                    <option value="15">15개</option>
+                    <option value="20">20개</option>
+                </select>
+            </label>
+            <label class="toggle">모양
+                <select class="field" id="sticker-icon" style="width:auto;min-height:40px;padding:6px 10px">
+                    <option>⭐</option><option>❤️</option><option>🌸</option><option>🍎</option><option>🐶</option><option>🚗</option>
+                </select>
+            </label>
+            <button class="btn" id="btn-sticker-reset">모두 비우기</button>
+        </div>
+        <div class="sticker-grid" id="sticker-grid"></div>
+    </section>
+
+    <!-- 관찰·알림장 -->
+    <section class="panel" id="panel-observe">
+        <div class="seg" id="obs-seg">
+            <button data-sub="obs-write" class="on">📝 관찰 기록</button>
+            <button data-sub="obs-notice">💌 알림장 만들기</button>
+        </div>
+
+        <div class="steam-act on" id="obs-write">
+            <div class="obs-grid">
+                <div class="card stack">
+                    <h3 class="section-title" style="margin:0">관찰 기록 쓰기</h3>
+                    <div class="row">
+                        <input type="date" id="obs-date" class="field" style="width:auto">
+                        <span class="hint">관찰한 친구를 눌러 주세요. 여러 명을 함께 고를 수 있어요.</span>
+                    </div>
+                    <div class="kid-pick" id="obs-kids"></div>
+                    <div class="hint" style="font-weight:700">누리과정 영역</div>
+                    <div class="area-chips" id="obs-areas"></div>
+                    <textarea class="field" id="obs-text" maxlength="500" placeholder="본 그대로 적어 주세요. 예) 블록을 높이 쌓다 무너지자 아래를 넓게 바꾸어 다시 쌓았어요."></textarea>
+                    <div class="hint">자주 쓰는 관찰 문장 (누르면 위에 이어서 적혀요)</div>
+                    <div class="phrases" id="obs-phrases"></div>
+                    <button class="btn primary" id="btn-obs-save">기록 저장</button>
+                </div>
+                <div class="card stack">
+                    <div class="row">
+                        <h3 class="section-title" style="margin:0">기록 모아보기</h3>
+                        <span class="spacer"></span>
+                        <select class="field" id="obs-filter-kid" style="width:auto;min-height:40px;padding:6px 10px"></select>
+                        <select class="field" id="obs-filter-area" style="width:auto;min-height:40px;padding:6px 10px"></select>
+                    </div>
+                    <div>
+                        <div class="hint" style="margin-bottom:6px">영역별 기록 수 · 적게 기록된 영역을 한눈에 볼 수 있어요</div>
+                        <div class="balance" id="obs-balance"></div>
+                    </div>
+                    <div class="obs-list" id="obs-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="steam-act" id="obs-notice">
+            <div class="notice-grid">
+                <div class="card stack">
+                    <h3 class="section-title" style="margin:0">알림장 재료 고르기</h3>
+                    <div class="row">
+                        <input type="date" id="notice-date" class="field" style="width:auto">
+                        <select class="field" id="notice-kid" style="width:auto;flex:1"></select>
+                    </div>
+                    <label class="toggle"><input type="checkbox" id="notice-sched" checked> 오늘의 일과 넣기</label>
+                    <label class="toggle"><input type="checkbox" id="notice-obs" checked> 이 날의 관찰 기록 넣기 (친구를 골랐을 때)</label>
+                    <div class="hint" style="font-weight:700">오늘의 놀이 이야기 (반 전체)</div>
+                    <textarea class="field" id="notice-play" maxlength="400" placeholder="예) 오늘은 가을 나뭇잎을 모아 색깔별로 나누어 보았어요."></textarea>
+                    <div class="hint" style="font-weight:700">알려 드려요</div>
+                    <textarea class="field" id="notice-info" maxlength="400" placeholder="예) 금요일은 현장체험학습이 있어요. 편한 신발을 신겨 보내 주세요."></textarea>
+                    <div class="hint" style="font-weight:700">준비물</div>
+                    <input class="field" id="notice-items" maxlength="100" placeholder="예) 여벌 옷, 물통">
+                    <button class="btn primary" id="btn-notice-make">✨ 알림장 글 만들기</button>
+                </div>
+                <div class="card stack">
+                    <div class="row">
+                        <h3 class="section-title" style="margin:0">완성된 알림장</h3>
+                        <span class="spacer"></span>
+                        <button class="btn green" id="btn-notice-copy">📋 복사하기</button>
+                    </div>
+                    <p class="hint" style="margin:0">아래 글은 자유롭게 고칠 수 있어요. 복사해서 학부모 알림 앱이나 문자에 붙여 넣으세요.</p>
+                    <textarea class="field notice-out" id="notice-out"></textarea>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STEAM 놀이 -->
+    <section class="panel" id="panel-steam">
+        <div class="seg" id="steam-seg">
+            <button data-sub="act-mix" class="on">🎨 색 섞기</button>
+            <button data-sub="act-sound">🎵 소리 탐색</button>
+            <button data-sub="act-pattern">🔷 패턴 놀이</button>
+            <span class="spacer"></span>
+            <button id="btn-steam-full" style="background:var(--primary);color:#fff">📺 전체 화면</button>
+        </div>
+
+        <div class="steam-act on" id="act-mix">
+            <div class="card mix-stage">
+                <div class="pots" id="pots"></div>
+                <div class="bowl-wrap" id="bowl-wrap"><div class="bowl" id="bowl"></div></div>
+                <div>
+                    <div class="mix-name" id="mix-name">물감을 넣어 보세요</div>
+                    <div class="mix-count" id="mix-count"></div>
+                </div>
+                <div class="row" style="justify-content:center">
+                    <button class="btn" id="btn-mix-clear">🫧 그릇 비우기</button>
+                    <button class="btn primary" id="btn-mix-keep">💾 내가 만든 색 모으기</button>
+                </div>
+                <div class="swatches" id="swatches"></div>
+            </div>
+            <div class="tip">
+                <h4>👩‍🏫 교사 도움말 · 예술경험, 자연탐구</h4>
+                <ul>
+                    <li>섞기 전에 먼저 물어보세요. "빨강과 노랑을 섞으면 어떤 색이 될까?"</li>
+                    <li>같은 두 색이라도 방울 수를 바꾸면 색이 달라져요. "노랑을 더 넣으면 어떻게 될까?"</li>
+                    <li>하양을 넣으면 색이 연해져요. 분홍, 하늘색을 만들어 보며 밝기를 탐색해요.</li>
+                    <li>화면 놀이 뒤에는 실제 물감, 셀로판지, 색 물을 섞어 보며 결과를 비교해 보세요.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="steam-act" id="act-sound">
+            <div class="card">
+                <h3 class="section-title">🎹 실로폰 · 막대가 짧을수록 어떤 소리가 날까?</h3>
+                <div class="xylo" id="xylo"></div>
+            </div>
+            <div class="card" style="margin-top:16px">
+                <h3 class="section-title">🌊 소리 파도 · 화면을 누른 채로 움직여 보세요</h3>
+                <canvas class="wave-pad" id="wave-pad"></canvas>
+                <div class="wave-info"><span>← 낮은 소리</span><span id="wave-state">위로 갈수록 큰 소리</span><span>높은 소리 →</span></div>
+            </div>
+            <div class="tip">
+                <h4>👩‍🏫 교사 도움말 · 자연탐구, 예술경험</h4>
+                <ul>
+                    <li>"긴 막대와 짧은 막대 중 어느 쪽이 높은 소리가 날까?" 먼저 예상하고 두드려 봐요.</li>
+                    <li>소리 파도에서 오른쪽으로 가면 물결이 촘촘해지고(높은 소리), 위로 가면 물결이 커져요(큰 소리).</li>
+                    <li>물의 양을 다르게 담은 유리컵 실로폰, 길이가 다른 고무줄 기타로 실제 소리와 비교해 보세요.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="steam-act" id="act-pattern">
+            <div class="card pattern-stage">
+                <div class="row" style="justify-content:center;margin-bottom:16px">
+                    <span class="hint" style="font-size:18px;font-weight:800">다음에 올 것은 무엇일까요?</span>
+                    <span class="chip" id="pattern-score">⭐ 0</span>
+                </div>
+                <div class="pattern-row" id="pattern-row"></div>
+                <div class="choices" id="pattern-choices"></div>
+                <div class="pattern-msg" id="pattern-msg"></div>
+                <button class="btn" id="btn-pattern-next" style="margin-top:8px">다른 문제 ▶</button>
+            </div>
+            <div class="tip">
+                <h4>👩‍🏫 교사 도움말 · 자연탐구(수학적 탐구), SW교육 기초</h4>
+                <ul>
+                    <li>정답을 고른 뒤 "왜 그렇게 생각했니?"라고 물어 규칙을 말로 표현하게 해 주세요.</li>
+                    <li>반복되는 규칙을 찾는 힘은 컴퓨팅 사고력의 '패턴 인식'과 이어져요.</li>
+                    <li>박수-무릎-박수-무릎처럼 몸으로, 블록·구슬 꿰기로 패턴을 직접 만들어 보세요.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- 설정 -->
+    <section class="panel" id="panel-settings">
+        <div class="settings-grid">
+            <div class="card">
+                <h3 class="section-title">우리 반 이름</h3>
+                <input class="field" id="class-name" maxlength="20" placeholder="예: 햇살반">
+                <h3 class="section-title" style="margin-top:18px">친구 추가하기</h3>
+                <p class="hint" style="margin-top:0">한 줄에 한 명씩 이름을 적으면 여러 명을 한꺼번에 넣을 수 있어요.</p>
+                <textarea class="field" id="roster-input" placeholder="김하늘&#10;이바다&#10;박구름"></textarea>
+                <button class="btn primary" id="btn-roster-add" style="margin-top:8px;width:100%">명단에 추가</button>
+            </div>
+            <div class="card">
+                <div class="row" style="margin-bottom:12px">
+                    <h3 class="section-title" style="margin:0">우리 반 친구들 <span id="roster-count" class="hint"></span></h3>
+                </div>
+                <p class="hint" style="margin-top:0">얼굴 그림을 누르면 다른 동물로 바뀌어요.</p>
+                <div class="roster" id="roster"></div>
+            </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+            <h3 class="section-title">자료 보관</h3>
+            <p class="hint" style="margin-top:0">모든 자료는 이 기기의 브라우저에만 저장됩니다. 다른 기기로 옮기거나 미리 보관하려면 백업 파일을 내려받으세요.</p>
+            <div class="row">
+                <button class="btn" id="btn-export">💾 백업 파일 내려받기</button>
+                <label class="btn" style="display:inline-flex;align-items:center">📂 백업 불러오기
+                    <input type="file" id="file-import" accept="application/json" hidden>
+                </label>
+                <span class="spacer"></span>
+                <button class="btn red" id="btn-wipe">모든 자료 지우기</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- 크게 보여주기 화면 -->
+<div class="overlay" id="overlay">
+    <button class="btn close" id="btn-overlay-close">✕ 닫기</button>
+    <div id="overlay-content"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    // ===== 저장소 =====
+    const STORE_KEY = 'kgTeacherApp_v1';
+    const FACES = ['🐰','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐤','🦊','🐱','🐶','🐹','🦄','🐳','🐢','🦋','🐞','🦒','🐘'];
+    const SCHED_PRESETS = [
+        ['👋','등원'], ['🧸','자유놀이'], ['🧹','정리 정돈'], ['🍪','간식'], ['🗣️','이야기 나누기'],
+        ['🎨','미술 활동'], ['🎵','음악·율동'], ['🌳','바깥놀이'], ['🍚','점심'], ['🪥','양치'],
+        ['😴','휴식'], ['📚','동화 듣기'], ['🔬','탐구 놀이'], ['🏠','귀가']
+    ];
+    const DEFAULT_SCHEDULE = [
+        ['👋','등원','09:00'], ['🧸','자유놀이','09:10'], ['🧹','정리 정돈','10:00'], ['🍪','간식','10:10'],
+        ['🗣️','이야기 나누기','10:30'], ['🌳','바깥놀이','11:00'], ['🍚','점심','12:00'], ['📚','동화 듣기','13:00'], ['🏠','귀가','13:40']
+    ];
+
+    const uid = () => Math.random().toString(36).slice(2, 10);
+    const pad = n => String(n).padStart(2, '0');
+    const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const todayKey = () => dateKey(new Date());
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function defaultState() {
+        return {
+            className: '',
+            sound: true,
+            students: [],
+            attendance: {},
+            schedule: DEFAULT_SCHEDULE.map(([emoji, title, time]) => ({ id: uid(), emoji, title, time, done: false })),
+            scheduleDate: todayKey(),
+            stickers: {},
+            stickerGoal: 10,
+            stickerIcon: '⭐',
+            observations: [],
+            notices: {}
+        };
+    }
+
+    function load() {
+        try {
+            const raw = localStorage.getItem(STORE_KEY);
+            if (raw) return Object.assign(defaultState(), JSON.parse(raw));
+        } catch (e) { /* 저장소를 쓸 수 없는 환경에서는 기본값으로 시작 */ }
+        return defaultState();
+    }
+
+    let state = load();
+    function save() {
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* 저장 실패 시 화면 동작은 유지 */ }
+    }
+
+    // 날짜가 바뀌면 일과 체크를 새로 시작
+    if (state.scheduleDate !== todayKey()) {
+        state.schedule.forEach(s => s.done = false);
+        state.scheduleDate = todayKey();
+        save();
+    }
+
+    // ===== 공통 =====
+    const $ = id => document.getElementById(id);
+    let toastTimer;
+    function toast(msg) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    let audioCtx;
+    function tone(freq, start, dur, type = 'sine', vol = 0.25) {
+        if (!state.sound) return;
+        try {
+            audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = type; o.frequency.value = freq;
+            const t0 = audioCtx.currentTime + start;
+            g.gain.setValueAtTime(0.0001, t0);
+            g.gain.exponentialRampToValueAtTime(vol, t0 + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+            o.connect(g).connect(audioCtx.destination);
+            o.start(t0); o.stop(t0 + dur + 0.05);
+        } catch (e) { /* 소리를 낼 수 없는 환경 */ }
+    }
+    const sounds = {
+        tick: () => tone(880, 0, 0.05, 'square', 0.05),
+        pop: () => { tone(660, 0, 0.12); tone(990, 0.08, 0.15); },
+        chime: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.18, 0.5)),
+        alarm: () => { for (let r = 0; r < 3; r++) [784, 988, 1175].forEach((f, i) => tone(f, r * 0.8 + i * 0.15, 0.4, 'triangle', 0.3)); }
+    };
+
+    function confetti(n = 40) {
+        const icons = ['🎉','⭐','🌈','🎈','💖','✨'];
+        for (let i = 0; i < n; i++) {
+            const el = document.createElement('div');
+            el.className = 'confetti';
+            el.textContent = icons[i % icons.length];
+            el.style.left = Math.random() * 100 + 'vw';
+            el.style.animationDuration = 2 + Math.random() * 2 + 's';
+            el.style.animationDelay = Math.random() * 0.6 + 's';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 5000);
+        }
+    }
+
+    function renderHeader() {
+        const d = new Date();
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        $('today-label').textContent = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}요일`;
+        $('class-title').textContent = state.className ? `${state.className} 하루 도우미` : '우리 반 하루 도우미';
+        $('btn-sound').textContent = state.sound ? '🔔' : '🔕';
+    }
+    $('btn-sound').onclick = () => {
+        state.sound = !state.sound; save(); renderHeader();
+        toast(state.sound ? '소리를 켰어요' : '소리를 껐어요');
+    };
+
+    // 탭 전환
+    $('tabs').addEventListener('click', e => {
+        const b = e.target.closest('button[data-tab]');
+        if (!b) return;
+        document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('active', x === b));
+        document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
+        renderAll();
+    });
+
+    function emptyRoster(msg) {
+        return `<div class="empty card" style="grid-column:1/-1"><span class="big">🧒</span>${msg}<br><br>
+            <button class="btn primary" onclick="document.querySelector('[data-tab=settings]').click()">우리 반 친구 등록하기</button></div>`;
+    }
+
+    // ===== 출석 =====
+    $('att-date').value = todayKey();
+    const attDay = () => {
+        const k = $('att-date').value || todayKey();
+        return state.attendance[k] || (state.attendance[k] = {});
+    };
+    const STATUS_LABEL = { present: '등원', absent: '결석', unknown: '확인 전' };
+
+    function renderAttendance() {
+        const day = attDay();
+        const grid = $('att-grid');
+        const cnt = { present: 0, absent: 0, unknown: 0 };
+        if (!state.students.length) {
+            grid.innerHTML = emptyRoster('아직 등록된 친구가 없어요.');
+        } else {
+            grid.innerHTML = state.students.map(s => {
+                const st = day[s.id] || 'unknown';
+                cnt[st]++;
+                return `<button class="kid ${st}" data-id="${s.id}">
+                    <div class="face">${s.face}</div>
+                    <div class="name">${esc(s.name)}</div>
+                    <span class="tag">${STATUS_LABEL[st]}</span>
+                </button>`;
+            }).join('');
+        }
+        $('cnt-present').textContent = cnt.present;
+        $('cnt-absent').textContent = cnt.absent;
+        $('cnt-unknown').textContent = cnt.unknown;
+    }
+    $('att-grid').addEventListener('click', e => {
+        const b = e.target.closest('.kid');
+        if (!b) return;
+        const day = attDay();
+        const next = { unknown: 'present', present: 'absent', absent: 'unknown' }[day[b.dataset.id] || 'unknown'];
+        if (next === 'unknown') delete day[b.dataset.id]; else day[b.dataset.id] = next;
+        if (next === 'present') sounds.pop();
+        save(); renderAttendance();
+    });
+    $('att-date').onchange = renderAttendance;
+    $('btn-all-present').onclick = () => {
+        const day = attDay();
+        state.students.forEach(s => day[s.id] = 'present');
+        save(); renderAttendance(); sounds.chime();
+    };
+    $('btn-att-reset').onclick = () => {
+        if (!confirm('이 날짜의 출석 체크를 모두 지울까요?')) return;
+        state.attendance[$('att-date').value || todayKey()] = {};
+        save(); renderAttendance();
+    };
+
+    // ===== 일과표 =====
+    const currentIndex = () => state.schedule.findIndex(s => !s.done);
+
+    function renderSchedule() {
+        const list = $('sched-list');
+        const cur = currentIndex();
+        if (!state.schedule.length) {
+            list.innerHTML = `<div class="empty card"><span class="big">🗓️</span>아래에서 오늘 할 활동을 추가해 주세요.</div>`;
+            return;
+        }
+        list.innerHTML = state.schedule.map((s, i) => `
+            <div class="sched ${s.done ? 'done' : ''} ${i === cur ? 'now' : ''}" data-id="${s.id}">
+                <button class="check" data-act="toggle" title="완료 표시">${s.done ? '✓' : ''}</button>
+                <div class="emoji">${esc(s.emoji)}</div>
+                <div class="info">
+                    <div class="title">${esc(s.title)}${i === cur ? '<span class="now-badge">지금</span>' : ''}</div>
+                    <div class="time">${s.time ? esc(s.time) : '시간 미정'}</div>
+                </div>
+                <div class="tools">
+                    <button data-act="up" title="위로">▲</button>
+                    <button data-act="down" title="아래로">▼</button>
+                    <button data-act="del" title="삭제">🗑️</button>
+                </div>
+            </div>`).join('');
+    }
+    $('sched-list').addEventListener('click', e => {
+        const b = e.target.closest('button[data-act]');
+        if (!b) return;
+        const i = state.schedule.findIndex(s => s.id === b.closest('.sched').dataset.id);
+        const item = state.schedule[i];
+        const act = b.dataset.act;
+        if (act === 'toggle') { item.done = !item.done; if (item.done) sounds.pop(); }
+        if (act === 'up' && i > 0) [state.schedule[i - 1], state.schedule[i]] = [state.schedule[i], state.schedule[i - 1]];
+        if (act === 'down' && i < state.schedule.length - 1) [state.schedule[i + 1], state.schedule[i]] = [state.schedule[i], state.schedule[i + 1]];
+        if (act === 'del') {
+            if (!confirm(`'${item.title}' 활동을 지울까요?`)) return;
+            state.schedule.splice(i, 1);
+        }
+        save(); renderSchedule();
+    });
+
+    function addSchedule(emoji, title, time) {
+        title = title.trim();
+        if (!title) { toast('활동 이름을 적어 주세요'); return; }
+        state.schedule.push({ id: uid(), emoji: emoji.trim() || '📌', title, time: time || '', done: false });
+        state.schedule.sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+        save(); renderSchedule();
+        toast(`'${title}' 활동을 넣었어요`);
+    }
+    $('btn-sched-add').onclick = () => {
+        addSchedule($('sched-emoji').value, $('sched-title').value, $('sched-time').value);
+        $('sched-emoji').value = ''; $('sched-title').value = ''; $('sched-time').value = '';
+    };
+    $('sched-presets').innerHTML = SCHED_PRESETS.map(([e, t]) => `<button class="chip" data-e="${e}" data-t="${t}">${e} ${t}</button>`).join('');
+    $('sched-presets').addEventListener('click', e => {
+        const b = e.target.closest('.chip');
+        if (!b) return;
+        $('sched-emoji').value = b.dataset.e;
+        $('sched-title').value = b.dataset.t;
+        $('sched-time').focus();
+    });
+    $('btn-sched-next').onclick = () => {
+        const i = currentIndex();
+        if (i === -1) { toast('오늘 일과를 모두 마쳤어요!'); return; }
+        state.schedule[i].done = true;
+        save(); renderSchedule(); sounds.chime();
+        if (currentIndex() === -1) confetti();
+        if ($('overlay').classList.contains('show') && overlayMode === 'schedule') showSchedule();
+    };
+    $('btn-sched-reset').onclick = () => { state.schedule.forEach(s => s.done = false); save(); renderSchedule(); };
+
+    // ===== 크게 보여주기 =====
+    let overlayMode = null;
+    function openOverlay(mode) {
+        overlayMode = mode;
+        $('overlay').classList.add('show');
+        if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+    }
+    function closeOverlay() {
+        overlayMode = null;
+        $('overlay').classList.remove('show');
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    }
+    $('btn-overlay-close').onclick = closeOverlay;
+
+    function showSchedule() {
+        const i = currentIndex();
+        const c = $('overlay-content');
+        if (i === -1) {
+            c.innerHTML = `<div class="show-emoji">🎉</div><div class="show-title">오늘도 참 잘했어요!</div>`;
+        } else {
+            const s = state.schedule[i], n = state.schedule[i + 1];
+            c.innerHTML = `<div class="show-label">지금은</div>
+                <div class="show-emoji">${esc(s.emoji)}</div>
+                <div class="show-title">${esc(s.title)}</div>
+                ${n ? `<div class="show-next">다음은 ${esc(n.emoji)} ${esc(n.title)}</div>` : ''}
+                <button class="btn green" style="margin-top:24px;font-size:20px" onclick="document.getElementById('btn-sched-next').click()">다 했어요! ▶</button>`;
+        }
+    }
+    $('btn-sched-show').onclick = () => { openOverlay('schedule'); showSchedule(); };
+
+    // ===== 타이머 =====
+    const timer = { total: 300, remain: 300, endAt: 0, running: false, handle: null };
+
+    function fmt(sec) {
+        sec = Math.max(0, Math.ceil(sec));
+        return `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}`;
+    }
+    function renderTimer() {
+        const p = timer.total ? timer.remain / timer.total : 0;
+        const color = p > 0.5 ? 'var(--green)' : p > 0.2 ? 'var(--yellow)' : 'var(--red)';
+        const label = $('timer-label').value.trim() || '타이머';
+        document.querySelectorAll('.dial').forEach(d => { d.style.setProperty('--p', p); d.style.setProperty('--c', color); });
+        document.querySelectorAll('.digits').forEach(d => d.textContent = fmt(timer.remain));
+        document.querySelectorAll('.timer-label-text').forEach(d => d.textContent = label);
+        $('timer-label-view').textContent = label;
+        $('timer-set').textContent = `${Math.round(timer.total / 60)}분`;
+        const startText = timer.running ? '⏸ 잠깐 멈춤' : (timer.remain < timer.total && timer.remain > 0 ? '▶ 계속하기' : '▶ 시작');
+        document.querySelectorAll('.timer-start').forEach(b => b.textContent = startText);
+        $('btn-timer-start').textContent = startText;
+    }
+    function setTimer(sec) {
+        stopTimer();
+        timer.total = timer.remain = Math.min(Math.max(sec, 60), 3600);
+        renderTimer();
+    }
+    function stopTimer() {
+        timer.running = false;
+        clearInterval(timer.handle);
+    }
+    function startTimer() {
+        if (timer.remain <= 0) timer.remain = timer.total;
+        timer.running = true;
+        timer.endAt = Date.now() + timer.remain * 1000;
+        let lastSec = Math.ceil(timer.remain);
+        timer.handle = setInterval(() => {
+            timer.remain = (timer.endAt - Date.now()) / 1000;
+            const sec = Math.ceil(timer.remain);
+            if (sec !== lastSec && sec <= 5 && sec > 0) sounds.tick();
+            lastSec = sec;
+            if (timer.remain <= 0) {
+                timer.remain = 0;
+                stopTimer();
+                sounds.alarm();
+                confetti(25);
+                toast(`⏰ ${$('timer-label').value.trim() || '타이머'} 끝!`);
+            }
+            renderTimer();
+        }, 200);
+        renderTimer();
+    }
+    function toggleTimer() { timer.running ? (stopTimer(), renderTimer()) : startTimer(); }
+
+    $('timer-presets').innerHTML = [1, 2, 3, 5, 10, 15, 20, 30, 40].map(m => `<button class="btn" data-min="${m}">${m}분</button>`).join('');
+    $('timer-presets').addEventListener('click', e => {
+        const b = e.target.closest('[data-min]');
+        if (b) setTimer(+b.dataset.min * 60);
+    });
+    document.querySelectorAll('[data-step]').forEach(b => b.onclick = () => setTimer(timer.total + +b.dataset.step));
+    $('timer-label-presets').innerHTML = ['정리 시간', '손 씻기', '간식 먹기', '자유놀이', '조용히 쉬기', '양치하기']
+        .map(t => `<button class="chip">${t}</button>`).join('');
+    $('timer-label-presets').addEventListener('click', e => {
+        const b = e.target.closest('.chip');
+        if (b) { $('timer-label').value = b.textContent; renderTimer(); }
+    });
+    $('timer-label').oninput = renderTimer;
+    $('btn-timer-start').onclick = toggleTimer;
+    $('btn-timer-reset').onclick = () => setTimer(timer.total);
+    $('btn-timer-full').onclick = () => {
+        openOverlay('timer');
+        $('overlay-content').innerHTML = `
+            <div class="show-label timer-label-text"></div>
+            <div class="dial" style="width:min(80vw,70vh);margin-top:16px">
+                <div class="dial-inner"><div class="digits" style="font-size:clamp(60px,14vw,150px)"></div></div>
+            </div>
+            <div class="row" style="margin-top:24px;justify-content:center">
+                <button class="btn primary timer-start" style="font-size:20px;min-width:160px" onclick="toggleTimer()"></button>
+                <button class="btn" style="font-size:20px" onclick="document.getElementById('btn-timer-reset').click()">↺ 처음부터</button>
+            </div>`;
+        renderTimer();
+    };
+
+    // ===== 이름 뽑기 =====
+    let picked = [];
+    let rolling = false;
+    function pickPool() {
+        let pool = state.students;
+        if ($('pick-present').checked) {
+            const day = state.attendance[todayKey()] || {};
+            const present = pool.filter(s => day[s.id] === 'present');
+            if (present.length) pool = present;
+        }
+        if ($('pick-norepeat').checked) pool = pool.filter(s => !picked.includes(s.id));
+        return pool;
+    }
+    function renderPicker() {
+        const pool = pickPool();
+        $('pick-remaining').textContent = state.students.length ? `뽑을 수 있는 친구 ${pool.length}명` : '';
+        $('pick-history').innerHTML = picked.map((id, i) => {
+            const s = state.students.find(x => x.id === id);
+            return s ? `<span class="chip">${i + 1}. ${s.face} ${esc(s.name)}</span>` : '';
+        }).join('');
+    }
+    $('btn-pick').onclick = () => {
+        if (rolling) return;
+        if (!state.students.length) { toast('먼저 우리 반 친구를 등록해 주세요'); return; }
+        const pool = pickPool();
+        if (!pool.length) { toast('모든 친구가 뽑혔어요! "처음부터 다시"를 눌러 주세요'); return; }
+        rolling = true;
+        const nameEl = $('picker-name'), faceEl = $('picker-face');
+        nameEl.className = 'picker-name rolling';
+        const winner = pool[Math.floor(Math.random() * pool.length)];
+        let delay = 50, elapsed = 0;
+        (function spin() {
+            const s = pool[Math.floor(Math.random() * pool.length)];
+            nameEl.textContent = s.name; faceEl.textContent = s.face;
+            sounds.tick();
+            elapsed += delay; delay *= 1.12;
+            if (elapsed < 2200) { setTimeout(spin, delay); return; }
+            nameEl.textContent = winner.name; faceEl.textContent = winner.face;
+            nameEl.className = 'picker-name chosen';
+            picked.push(winner.id);
+            sounds.chime(); confetti(20);
+            rolling = false;
+            renderPicker();
+        })();
+    };
+    $('btn-pick-reset').onclick = () => {
+        picked = [];
+        $('picker-name').textContent = '누가 뽑힐까요?'; $('picker-name').className = 'picker-name';
+        $('picker-face').textContent = '🎁';
+        renderPicker();
+    };
+    $('pick-present').onchange = $('pick-norepeat').onchange = renderPicker;
+
+    // ===== 칭찬 스티커 =====
+    let lastSticker = null;
+    function renderStickers() {
+        const grid = $('sticker-grid');
+        const goal = state.stickerGoal;
+        $('sticker-goal').value = goal;
+        $('sticker-icon').value = state.stickerIcon;
+        if (!state.students.length) { grid.innerHTML = emptyRoster('친구를 등록하면 스티커판이 만들어져요.'); return; }
+        grid.innerHTML = state.students.map(s => {
+            const n = state.stickers[s.id] || 0;
+            const slots = Array.from({ length: goal }, (_, i) => {
+                const on = i < n;
+                const isNew = lastSticker === s.id && i === n - 1;
+                return `<div class="slot ${on ? 'on' : ''} ${isNew ? 'new' : ''}">${on ? state.stickerIcon : ''}</div>`;
+            }).join('');
+            return `<div class="sticker-card ${n >= goal ? 'goal' : ''}" data-id="${s.id}">
+                <div class="sticker-head">
+                    <span class="face">${s.face}</span><span class="name">${esc(s.name)}</span>
+                    <span class="count">${n >= goal ? '🏆 ' : ''}${n}/${goal}</span>
+                </div>
+                <div class="slots">${slots}</div>
+                <div class="sticker-actions">
+                    <button class="btn small" data-act="minus">− 빼기</button>
+                    <button class="btn small primary" data-act="plus">+ 붙이기</button>
+                </div>
+            </div>`;
+        }).join('');
+        lastSticker = null;
+    }
+    $('sticker-grid').addEventListener('click', e => {
+        const b = e.target.closest('button[data-act]');
+        if (!b) return;
+        const id = b.closest('.sticker-card').dataset.id;
+        const n = state.stickers[id] || 0;
+        const goal = state.stickerGoal;
+        if (b.dataset.act === 'plus') {
+            if (n >= goal) { toast('이미 스티커판을 다 채웠어요! 🏆'); return; }
+            state.stickers[id] = n + 1;
+            lastSticker = id;
+            if (n + 1 === goal) {
+                const s = state.students.find(x => x.id === id);
+                sounds.alarm(); confetti(60);
+                toast(`🎉 ${s.name} 친구가 스티커를 모두 모았어요!`);
+            } else sounds.pop();
+        } else {
+            state.stickers[id] = Math.max(0, n - 1);
+        }
+        save(); renderStickers();
+    });
+    $('sticker-goal').onchange = () => { state.stickerGoal = +$('sticker-goal').value; save(); renderStickers(); };
+    $('sticker-icon').onchange = () => { state.stickerIcon = $('sticker-icon').value; save(); renderStickers(); };
+    $('btn-sticker-reset').onclick = () => {
+        if (!confirm('모든 친구의 스티커를 비울까요?')) return;
+        state.stickers = {}; save(); renderStickers();
+    };
+
+    // ===== 설정 =====
+    function renderSettings() {
+        $('class-name').value = state.className;
+        $('roster-count').textContent = `(${state.students.length}명)`;
+        $('roster').innerHTML = state.students.length ? state.students.map(s => `
+            <div class="roster-item" data-id="${s.id}">
+                <button class="face" data-act="face" title="얼굴 바꾸기">${s.face}</button>
+                <span class="name">${esc(s.name)}</span>
+                <button class="del" data-act="del" title="명단에서 빼기">✕</button>
+            </div>`).join('') : '<p class="hint">왼쪽에서 친구 이름을 넣어 주세요.</p>';
+    }
+    $('class-name').oninput = () => { state.className = $('class-name').value.trim(); save(); renderHeader(); };
+    $('btn-roster-add').onclick = () => {
+        const used = new Set(state.students.map(s => s.name));
+        const names = $('roster-input').value.split(/\n|,/).map(x => x.trim()).filter(x => x && !used.has(x));
+        if (!names.length) { toast('새로 넣을 이름이 없어요'); return; }
+        names.forEach(name => {
+            used.add(name);
+            state.students.push({ id: uid(), name: name.slice(0, 12), face: FACES[state.students.length % FACES.length] });
+        });
+        $('roster-input').value = '';
+        save(); renderSettings(); renderHeader();
+        toast(`${names.length}명을 명단에 넣었어요`);
+    };
+    $('roster').addEventListener('click', e => {
+        const b = e.target.closest('button[data-act]');
+        if (!b) return;
+        const id = b.closest('.roster-item').dataset.id;
+        const s = state.students.find(x => x.id === id);
+        if (b.dataset.act === 'face') {
+            s.face = FACES[(FACES.indexOf(s.face) + 1) % FACES.length];
+        } else {
+            if (!confirm(`${s.name} 친구를 명단에서 뺄까요? 출석·스티커·관찰 기록도 함께 지워져요.`)) return;
+            state.students = state.students.filter(x => x.id !== id);
+            delete state.stickers[id];
+            Object.values(state.attendance).forEach(day => delete day[id]);
+            state.observations = state.observations.filter(o => o.studentId !== id);
+            picked = picked.filter(x => x !== id);
+        }
+        save(); renderSettings();
+    });
+    $('btn-export').onclick = () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `우리반도우미_백업_${todayKey()}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+    $('file-import').onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const data = JSON.parse(reader.result);
+                if (!Array.isArray(data.students)) throw new Error('형식 오류');
+                if (!confirm('지금 자료를 백업 파일 내용으로 바꿀까요?')) return;
+                state = Object.assign(defaultState(), data);
+                save(); renderAll(); toast('백업을 불러왔어요');
+            } catch (err) { toast('백업 파일을 읽을 수 없어요'); }
+            e.target.value = '';
+        };
+        reader.readAsText(file);
+    };
+    $('btn-wipe').onclick = () => {
+        if (!confirm('명단, 출석, 일과, 스티커, 관찰 기록이 모두 지워집니다. 계속할까요?')) return;
+        state = defaultState(); picked = [];
+        save(); renderAll(); toast('모든 자료를 지웠어요');
+    };
+
+    // ===== 하위 탭 (관찰·알림장, STEAM 놀이 공통) =====
+    document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+        const b = e.target.closest('button[data-sub]');
+        if (!b) return;
+        seg.querySelectorAll('button[data-sub]').forEach(x => x.classList.toggle('on', x === b));
+        seg.parentElement.querySelectorAll(':scope > .steam-act').forEach(a => a.classList.toggle('on', a.id === b.dataset.sub));
+        if (b.dataset.sub === 'act-sound') resizeWave();
+        if (b.dataset.sub === 'obs-notice') loadNoticeFields();
+    }));
+
+    // ===== 관찰 기록 =====
+    // 2019 개정 누리과정 5개 영역
+    const AREAS = [
+        { key: 'body', name: '신체운동·건강', color: '#4cb782', phrases: ['균형을 잡으며 평균대를 끝까지 걸었어요.', '스스로 손을 깨끗이 씻었어요.', '여러 가지 음식을 골고루 먹었어요.', '공을 두 손으로 받아 보려고 여러 번 시도했어요.'] },
+        { key: 'talk', name: '의사소통', color: '#5b9dff', phrases: ['그림책을 보며 이야기를 지어 말했어요.', '친구의 말을 끝까지 듣고 대답했어요.', '자기 이름의 글자를 찾아 써 보았어요.', '놀이 중 필요한 것을 말로 요청했어요.'] },
+        { key: 'social', name: '사회관계', color: '#f4b740', phrases: ['친구에게 놀잇감을 양보했어요.', '속상한 친구를 다가가 위로해 주었어요.', '차례를 기다려 놀이에 참여했어요.', '친구와 역할을 나누어 함께 놀이했어요.'] },
+        { key: 'art', name: '예술경험', color: '#e5646a', phrases: ['여러 색을 섞어 새로운 색을 만들었어요.', '노래에 맞춰 몸으로 자유롭게 표현했어요.', '자연물로 작품을 꾸몄어요.', '친구의 작품을 보고 좋은 점을 말했어요.'] },
+        { key: 'nature', name: '자연탐구', color: '#9b6bdf', phrases: ['블록이 무너지지 않게 쌓는 방법을 여러 번 시도했어요.', '개미의 움직임을 오래 관찰했어요.', '물건을 크기 순서대로 늘어놓았어요.', '물에 뜨는 것과 가라앉는 것을 나누어 보았어요.'] }
+    ];
+    const areaOf = k => AREAS.find(a => a.key === k);
+    const studentOf = id => state.students.find(s => s.id === id);
+    const obsSel = { kids: new Set(), areas: new Set() };
+    $('obs-date').value = todayKey();
+    $('notice-date').value = todayKey();
+
+    $('obs-areas').innerHTML = AREAS.map(a => `<button class="area" data-area="${a.key}" style="--a:${a.color}">${a.name}</button>`).join('');
+    $('obs-phrases').innerHTML = AREAS.flatMap(a => a.phrases.map(p =>
+        `<button data-area="${a.key}"><span class="area-tag" style="--a:${a.color}">${a.name}</span>${p}</button>`)).join('');
+    $('obs-filter-area').innerHTML = '<option value="">모든 영역</option>' + AREAS.map(a => `<option value="${a.key}">${a.name}</option>`).join('');
+
+    function renderObsAreas() {
+        document.querySelectorAll('#obs-areas .area').forEach(b => b.classList.toggle('on', obsSel.areas.has(b.dataset.area)));
+    }
+    $('obs-areas').addEventListener('click', e => {
+        const b = e.target.closest('.area');
+        if (!b) return;
+        const k = b.dataset.area;
+        obsSel.areas.has(k) ? obsSel.areas.delete(k) : obsSel.areas.add(k);
+        renderObsAreas();
+    });
+    $('obs-phrases').addEventListener('click', e => {
+        const b = e.target.closest('button[data-area]');
+        if (!b) return;
+        const ta = $('obs-text');
+        const phrase = b.lastChild.textContent;
+        ta.value = ta.value.trim() ? ta.value.trim() + ' ' + phrase : phrase;
+        obsSel.areas.add(b.dataset.area);
+        renderObsAreas();
+    });
+    $('obs-kids').addEventListener('click', e => {
+        const b = e.target.closest('button[data-id]');
+        if (!b) return;
+        const id = b.dataset.id;
+        obsSel.kids.has(id) ? obsSel.kids.delete(id) : obsSel.kids.add(id);
+        b.classList.toggle('on', obsSel.kids.has(id));
+    });
+    $('btn-obs-save').onclick = () => {
+        const text = $('obs-text').value.trim();
+        if (!obsSel.kids.size) { toast('관찰한 친구를 골라 주세요'); return; }
+        if (!text) { toast('관찰 내용을 적어 주세요'); return; }
+        const date = $('obs-date').value || todayKey();
+        obsSel.kids.forEach(studentId => state.observations.push({ id: uid(), date, studentId, areas: [...obsSel.areas], text }));
+        toast(`${obsSel.kids.size}명의 관찰 기록을 저장했어요`);
+        obsSel.kids.clear(); obsSel.areas.clear();
+        $('obs-text').value = '';
+        save(); renderObserve();
+    };
+
+    function renderObserve() {
+        // 친구 고르기
+        $('obs-kids').innerHTML = state.students.length
+            ? state.students.map(s => `<button data-id="${s.id}" class="${obsSel.kids.has(s.id) ? 'on' : ''}">${s.face} ${esc(s.name)}</button>`).join('')
+            : '<span class="hint">설정 탭에서 우리 반 친구를 먼저 등록해 주세요.</span>';
+        renderObsAreas();
+
+        // 필터
+        const fk = $('obs-filter-kid'), keepKid = fk.value;
+        fk.innerHTML = '<option value="">모든 친구</option>' + state.students.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+        fk.value = studentOf(keepKid) ? keepKid : '';
+        const kid = fk.value, area = $('obs-filter-area').value;
+
+        // 영역 균형
+        const pool = state.observations.filter(o => !kid || o.studentId === kid);
+        const counts = AREAS.map(a => pool.filter(o => o.areas.includes(a.key)).length);
+        const max = Math.max(1, ...counts);
+        $('obs-balance').innerHTML = AREAS.map((a, i) => `
+            <span>${a.name}</span><div class="bar" style="--a:${a.color}"><i style="width:${counts[i] / max * 100}%"></i></div><span>${counts[i]}</span>`).join('');
+
+        // 목록 (최근 날짜 먼저)
+        const list = pool.filter(o => !area || o.areas.includes(area))
+            .sort((a, b) => b.date.localeCompare(a.date));
+        $('obs-list').innerHTML = list.length ? list.map(o => {
+            const s = studentOf(o.studentId);
+            return `<div class="obs-item" data-id="${o.id}">
+                <div class="meta">
+                    <b>${s ? s.face + ' ' + esc(s.name) : '(삭제된 친구)'}</b><span>${o.date}</span>
+                    ${o.areas.map(k => `<span class="area-tag" style="--a:${areaOf(k).color}">${areaOf(k).name}</span>`).join('')}
+                    <button class="del" title="기록 지우기">지우기</button>
+                </div>
+                <div class="text">${esc(o.text)}</div>
+            </div>`;
+        }).join('') : '<div class="empty"><span class="big">📝</span>아직 관찰 기록이 없어요.</div>';
+
+        // 알림장 친구 목록
+        const nk = $('notice-kid'), keepN = nk.value;
+        nk.innerHTML = '<option value="">반 전체 (공통 알림장)</option>' + state.students.map(s => `<option value="${s.id}">${s.face} ${esc(s.name)}</option>`).join('');
+        nk.value = studentOf(keepN) ? keepN : '';
+    }
+    $('obs-filter-kid').onchange = $('obs-filter-area').onchange = renderObserve;
+    $('obs-list').addEventListener('click', e => {
+        const b = e.target.closest('.del');
+        if (!b || !confirm('이 관찰 기록을 지울까요?')) return;
+        const id = b.closest('.obs-item').dataset.id;
+        state.observations = state.observations.filter(o => o.id !== id);
+        save(); renderObserve();
+    });
+
+    // ===== 알림장 =====
+    const noticeFields = ['play', 'info', 'items'];
+    function loadNoticeFields() {
+        const n = state.notices[$('notice-date').value || todayKey()] || {};
+        noticeFields.forEach(f => $('notice-' + f).value = n[f] || '');
+    }
+    function saveNoticeFields() {
+        const k = $('notice-date').value || todayKey();
+        const n = {};
+        noticeFields.forEach(f => { const v = $('notice-' + f).value.trim(); if (v) n[f] = v; });
+        if (Object.keys(n).length) state.notices[k] = n; else delete state.notices[k];
+        save();
+    }
+    noticeFields.forEach(f => $('notice-' + f).addEventListener('input', saveNoticeFields));
+    $('notice-date').onchange = loadNoticeFields;
+
+    function makeNotice() {
+        const k = $('notice-date').value || todayKey();
+        const [y, m, d] = k.split('-').map(Number);
+        const day = ['일', '월', '화', '수', '목', '금', '토'][new Date(y, m - 1, d).getDay()];
+        const kid = studentOf($('notice-kid').value);
+        const cls = state.className || '우리 반';
+        const lines = [`[${cls} 알림장] ${m}월 ${d}일 ${day}요일`, ''];
+        lines.push(kid ? `안녕하세요, ${kid.name} 어린이 보호자님.` : '안녕하세요, 보호자님.');
+        lines.push(`오늘 ${cls}의 하루를 전해 드립니다.`);
+
+        if ($('notice-sched').checked && state.schedule.length) {
+            lines.push('', '🌈 오늘의 일과', state.schedule.map(s => `${s.emoji} ${s.title}`).join(' → '));
+        }
+        const play = $('notice-play').value.trim();
+        if (play) lines.push('', '🧸 오늘의 놀이', play);
+        if (kid && $('notice-obs').checked) {
+            const obs = state.observations.filter(o => o.studentId === kid.id && o.date === k);
+            if (obs.length) {
+                lines.push('', `💛 ${kid.name} 어린이의 놀이 모습`);
+                obs.forEach(o => lines.push(`- ${o.text}`));
+            }
+        }
+        const info = $('notice-info').value.trim();
+        if (info) lines.push('', '📢 알려 드려요', info);
+        const items = $('notice-items').value.trim();
+        if (items) lines.push('', `🎒 준비물: ${items}`);
+        lines.push('', '오늘도 아이와 함께해 주셔서 감사합니다.', `${cls} 담임교사 드림`);
+        return lines.join('\n');
+    }
+    $('btn-notice-make').onclick = () => { $('notice-out').value = makeNotice(); toast('알림장 글을 만들었어요'); };
+    $('btn-notice-copy').onclick = async () => {
+        const text = $('notice-out').value.trim();
+        if (!text) { toast('먼저 알림장 글을 만들어 주세요'); return; }
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch (e) {
+            $('notice-out').select();
+            document.execCommand('copy');
+        }
+        toast('알림장 글을 복사했어요');
+    };
+
+    // ===== STEAM: 색 섞기 =====
+    const PAINTS = [
+        { key: 'r', name: '빨강', color: '#e5322d' },
+        { key: 'y', name: '노랑', color: '#f7d117' },
+        { key: 'b', name: '파랑', color: '#2a5fbf' },
+        { key: 'w', name: '하양', color: '#f4f1ea' }
+    ];
+    const mix = { r: 0, y: 0, b: 0, w: 0 };
+    const keptColors = [];
+
+    // 물감처럼 섞이도록 RYB 색 공간의 꼭짓점 사이를 보간 (Gossett & Chen, 2004)
+    function ryb2rgb(r, y, b) {
+        const C = [[1, 1, 1], [1, 0, 0], [1, 1, 0], [1, .5, 0], [.163, .373, .6], [.5, 0, .5], [0, .66, .2], [.2, .094, 0]];
+        return [0, 1, 2].map(i => {
+            const lerp = (a, c, t) => a + (c - a) * t;
+            const x0 = lerp(C[0][i], C[4][i], b), x1 = lerp(C[1][i], C[5][i], b);
+            const x2 = lerp(C[2][i], C[6][i], b), x3 = lerp(C[3][i], C[7][i], b);
+            return lerp(lerp(x0, x1, r), lerp(x2, x3, r), y);
+        });
+    }
+    function mixedColor() {
+        const total = mix.r + mix.y + mix.b + mix.w;
+        if (!total) return null;
+        const m = Math.max(mix.r, mix.y, mix.b);
+        let rgb = m ? ryb2rgb(mix.r / m, mix.y / m, mix.b / m) : [1, 1, 1];
+        const wt = mix.w / total * 0.85;
+        rgb = rgb.map(c => c + (1 - c) * wt);
+        return `rgb(${rgb.map(c => Math.round(c * 255)).join(',')})`;
+    }
+    function mixedName() {
+        const { r, y, b, w } = mix;
+        if (!r && !y && !b) return w ? '하양' : '물감을 넣어 보세요';
+        let name;
+        if (r && y && b) name = '갈색';
+        else if (r && y) name = r > y ? '빨간빛 주황' : y > r ? '노란빛 주황' : '주황';
+        else if (y && b) name = y > b ? '연두' : b > y ? '청록' : '초록';
+        else if (r && b) name = r > b ? '자주' : b > r ? '남보라' : '보라';
+        else name = r ? '빨강' : y ? '노랑' : '파랑';
+        if (w) {
+            if (name === '빨강') return '분홍';
+            if (name === '파랑') return '하늘색';
+            return '연한 ' + name;
+        }
+        return name;
+    }
+    function renderMix() {
+        const c = mixedColor();
+        $('bowl').style.background = c || '#fdfaf4';
+        $('mix-name').textContent = mixedName();
+        $('mix-count').textContent = PAINTS.filter(p => mix[p.key]).map(p => `${p.name} ${mix[p.key]}방울`).join(' + ');
+        $('swatches').innerHTML = keptColors.map(k => `<div class="swatch" title="${k.name}" style="background:${k.color}"></div>`).join('');
+    }
+    $('pots').innerHTML = PAINTS.map(p => `<button class="pot" data-key="${p.key}" style="--pc:${p.color};${p.key === 'w' ? 'color:#8a8578;text-shadow:none' : ''}">${p.name}</button>`).join('');
+    $('pots').addEventListener('click', e => {
+        const b = e.target.closest('.pot');
+        if (!b) return;
+        const p = PAINTS.find(x => x.key === b.dataset.key);
+        if (mix.r + mix.y + mix.b + mix.w >= 30) { toast('그릇이 가득 찼어요! 비우고 다시 해 보세요'); return; }
+        mix[p.key]++;
+        const drop = document.createElement('div');
+        drop.className = 'drop';
+        drop.style.background = p.color;
+        $('bowl-wrap').appendChild(drop);
+        setTimeout(() => { drop.remove(); renderMix(); }, 450);
+        tone(300 + Math.random() * 200, 0, 0.15, 'sine', 0.15);
+    });
+    $('btn-mix-clear').onclick = () => { Object.keys(mix).forEach(k => mix[k] = 0); renderMix(); };
+    $('btn-mix-keep').onclick = () => {
+        const c = mixedColor();
+        if (!c) { toast('먼저 물감을 넣어 보세요'); return; }
+        keptColors.push({ color: c, name: mixedName() });
+        if (keptColors.length > 16) keptColors.shift();
+        sounds.pop(); renderMix();
+    };
+
+    // ===== STEAM: 실로폰 =====
+    const NOTES = [['도', 523.25], ['레', 587.33], ['미', 659.25], ['파', 698.46], ['솔', 783.99], ['라', 880], ['시', 987.77], ['도', 1046.5]];
+    const KEY_COLORS = ['#e5646a', '#ff8a5b', '#f4b740', '#4cb782', '#3fb5c9', '#5b9dff', '#9b6bdf', '#e56fb0'];
+    $('xylo').innerHTML = NOTES.map(([n], i) => `<div class="bar-key" data-i="${i}" style="--kc:${KEY_COLORS[i]};height:${240 - i * 18}px">${n}</div>`).join('');
+    $('xylo').addEventListener('pointerdown', e => {
+        const k = e.target.closest('.bar-key');
+        if (!k) return;
+        if (!state.sound) { toast('소리가 꺼져 있어요. 위쪽 🔕 버튼을 눌러 주세요'); return; }
+        const f = NOTES[+k.dataset.i][1];
+        tone(f, 0, 1.2, 'sine', 0.3);
+        tone(f * 2, 0, 0.4, 'sine', 0.06);
+        k.classList.add('hit');
+        setTimeout(() => k.classList.remove('hit'), 150);
+    });
+
+    // ===== STEAM: 소리 파도 =====
+    const wavePad = $('wave-pad'), pctx = wavePad.getContext('2d');
+    const wave = { on: false, x: 0.3, y: 0.5, osc: null, gain: null, phase: 0 };
+    function resizeWave() {
+        const r = wavePad.getBoundingClientRect();
+        if (r.width) { wavePad.width = r.width * devicePixelRatio; wavePad.height = r.height * devicePixelRatio; }
+    }
+    const waveFreq = () => 150 + wave.x * 850;
+    const waveVol = () => 0.03 + (1 - wave.y) * 0.3;
+    function drawWave() {
+        const w = wavePad.width, h = wavePad.height;
+        pctx.clearRect(0, 0, w, h);
+        pctx.strokeStyle = 'rgba(255,255,255,.12)';
+        pctx.lineWidth = 1;
+        pctx.beginPath(); pctx.moveTo(0, h / 2); pctx.lineTo(w, h / 2); pctx.stroke();
+        const amp = wave.on ? (1 - wave.y) * h * 0.42 + h * 0.03 : 0;
+        const cycles = wave.on ? 1 + wave.x * 11 : 0;
+        wave.phase += wave.on ? 0.15 : 0;
+        pctx.strokeStyle = wave.on ? `hsl(${200 - wave.x * 180}, 90%, 65%)` : 'rgba(255,255,255,.4)';
+        pctx.lineWidth = 4 * devicePixelRatio;
+        pctx.beginPath();
+        for (let px = 0; px <= w; px += 2) {
+            const yy = h / 2 - Math.sin(px / w * cycles * Math.PI * 2 - wave.phase) * amp;
+            px ? pctx.lineTo(px, yy) : pctx.moveTo(px, yy);
+        }
+        pctx.stroke();
+        if (wave.on) {
+            pctx.fillStyle = '#fff';
+            pctx.beginPath(); pctx.arc(wave.x * w, wave.y * h, 10 * devicePixelRatio, 0, Math.PI * 2); pctx.fill();
+        }
+        if ($('panel-steam').classList.contains('active')) requestAnimationFrame(drawWave);
+        else waveLoop = false;
+    }
+    let waveLoop = false;
+    function startWaveLoop() { if (!waveLoop) { waveLoop = true; requestAnimationFrame(drawWave); } }
+    function wavePos(e) {
+        const r = wavePad.getBoundingClientRect();
+        wave.x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        wave.y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+        $('wave-state').textContent = `${wave.x > 0.5 ? '높은' : '낮은'} 소리 · ${wave.y < 0.5 ? '큰' : '작은'} 소리`;
+        if (wave.osc) {
+            wave.osc.frequency.setTargetAtTime(waveFreq(), audioCtx.currentTime, 0.02);
+            wave.gain.gain.setTargetAtTime(waveVol(), audioCtx.currentTime, 0.02);
+        }
+    }
+    function waveStop() {
+        wave.on = false;
+        if (wave.osc) {
+            wave.gain.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.05);
+            wave.osc.stop(audioCtx.currentTime + 0.3);
+            wave.osc = wave.gain = null;
+        }
+        $('wave-state').textContent = '위로 갈수록 큰 소리';
+    }
+    wavePad.addEventListener('pointerdown', e => {
+        wavePad.setPointerCapture(e.pointerId);
+        wave.on = true;
+        wavePos(e);
+        if (!state.sound) { toast('소리가 꺼져 있어요. 물결 모양만 볼 수 있어요'); return; }
+        try {
+            audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            wave.osc = audioCtx.createOscillator();
+            wave.gain = audioCtx.createGain();
+            wave.osc.frequency.value = waveFreq();
+            wave.gain.gain.value = 0.0001;
+            wave.osc.connect(wave.gain).connect(audioCtx.destination);
+            wave.osc.start();
+            wave.gain.gain.setTargetAtTime(waveVol(), audioCtx.currentTime, 0.03);
+        } catch (err) { wave.osc = null; }
+    });
+    wavePad.addEventListener('pointermove', e => { if (wave.on) wavePos(e); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => wavePad.addEventListener(t, waveStop));
+
+    // ===== STEAM: 패턴 놀이 =====
+    const PATTERN_SETS = [['🍎', '🍌', '🍇', '🍓'], ['🐶', '🐱', '🐰', '🐻'], ['🔴', '🟡', '🔵', '🟢'], ['⭐', '🌙', '☀️', '☁️'], ['🚗', '🚌', '🚲', '✈️']];
+    const PATTERN_RULES = ['AB', 'AB', 'AAB', 'ABB', 'ABC'];
+    const pattern = { answer: null, unit: [], score: 0, solved: false };
+    const shuffle = arr => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+
+    function newPattern() {
+        const set = shuffle(PATTERN_SETS[Math.floor(Math.random() * PATTERN_SETS.length)]);
+        const rule = PATTERN_RULES[Math.floor(Math.random() * PATTERN_RULES.length)];
+        const letters = [...new Set(rule)];
+        const unit = [...rule].map(ch => set[letters.indexOf(ch)]);
+        const full = [...unit, ...unit, ...unit];
+        const cut = unit.length * 2 + Math.floor(Math.random() * unit.length);
+        pattern.answer = full[cut];
+        pattern.unit = unit;
+        pattern.solved = false;
+        const options = letters.map((_, i) => set[i]);
+        options.push(set[letters.length]);
+        $('pattern-row').innerHTML = full.slice(0, cut).map(x => `<span>${x}</span>`).join('') + '<span class="q">?</span>';
+        $('pattern-choices').innerHTML = shuffle(options).map(o => `<button data-v="${o}">${o}</button>`).join('');
+        $('pattern-msg').textContent = '';
+    }
+    $('pattern-choices').addEventListener('click', e => {
+        const b = e.target.closest('button[data-v]');
+        if (!b || pattern.solved) return;
+        if (b.dataset.v === pattern.answer) {
+            pattern.solved = true;
+            pattern.score++;
+            b.classList.add('right');
+            $('pattern-score').textContent = `⭐ ${pattern.score}`;
+            document.querySelector('#pattern-row .q').outerHTML = `<span>${pattern.answer}</span>`;
+            $('pattern-msg').textContent = `딩동댕! ${pattern.unit.join('')} 순서가 반복돼요.`;
+            sounds.chime();
+            if (pattern.score % 5 === 0) confetti(30);
+            setTimeout(() => { if (pattern.solved && $('panel-steam').classList.contains('active')) newPattern(); }, 2200);
+        } else {
+            b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong');
+            $('pattern-msg').textContent = '다시 한번 살펴볼까요? 🤔';
+            tone(220, 0, 0.25, 'triangle', 0.2);
+        }
+    });
+    $('btn-pattern-next').onclick = newPattern;
+
+    $('btn-steam-full').onclick = () => {
+        const el = $('panel-steam');
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        else if (el.requestFullscreen) el.requestFullscreen().then(resizeWave).catch(() => toast('이 기기에서는 전체 화면을 쓸 수 없어요'));
+    };
+    document.addEventListener('fullscreenchange', () => setTimeout(resizeWave, 100));
+    window.addEventListener('resize', resizeWave);
+
+    function renderSteam() {
+        resizeWave();
+        startWaveLoop();
+    }
+
+    // ===== 시작 =====
+    function renderAll() {
+        renderHeader();
+        renderAttendance();
+        renderSchedule();
+        renderTimer();
+        renderPicker();
+        renderStickers();
+        renderObserve();
+        if ($('panel-steam').classList.contains('active')) renderSteam();
+        renderSettings();
+    }
+    renderMix();
+    newPattern();
+    renderAll();
+</script>
+</body>
+</html>
