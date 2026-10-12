@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>나만의 수업 타이머</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { touch-action: manipulation; transition: background 0.3s, color 0.3s; }
+        .theme-dark { background-color: #0f172a; color: #f1f5f9; }
+        .theme-light { background-color: #f8fafc; color: #1e293b; }
+        .bg-card { transition: background 0.3s; }
+        .theme-dark .bg-card { background-color: #1e293b; border-color: #334155; }
+        .theme-light .bg-card { background-color: #ffffff; border-color: #e2e8f0; }
+        .theme-dark .ring-track { stroke: #334155; }
+        .theme-light .ring-track { stroke: #e2e8f0; }
+        .theme-dark .field { background-color: #334155; color: #fff; }
+        .theme-light .field { background-color: #f1f5f9; color: #1e293b; }
+        #ring { transition: stroke-dashoffset 0.25s linear, stroke 0.3s; }
+        .blink { animation: blink 0.6s step-start infinite; }
+        @keyframes blink { 50% { opacity: 0.2; } }
+        input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+    </style>
+</head>
+<body class="theme-dark flex flex-col h-screen overflow-hidden">
+
+    <header class="p-3 shadow-md border-b flex justify-between items-center bg-card">
+        <h1 class="text-lg font-bold text-yellow-500">나만의 수업 타이머</h1>
+        <div class="flex gap-2">
+            <button id="btn-full" class="text-xs px-3 py-1 rounded bg-slate-700 text-white">전체 화면</button>
+            <button id="btn-theme" class="text-xs px-3 py-1 rounded bg-slate-700 text-white">테마 변경</button>
+        </div>
+    </header>
+
+    <main class="flex-grow overflow-y-auto p-2 space-y-3 max-w-xl w-full mx-auto">
+        <!-- 모드 선택 -->
+        <div class="flex gap-2">
+            <button data-mode="timer" class="mode-btn flex-1 py-2 rounded text-sm font-bold">타이머</button>
+            <button data-mode="stopwatch" class="mode-btn flex-1 py-2 rounded text-sm font-bold">스톱워치</button>
+        </div>
+
+        <!-- 시계 표시 -->
+        <div class="rounded-lg border p-4 bg-card flex flex-col items-center">
+            <input id="label" maxlength="20" placeholder="활동 이름 (예: 모둠 토의)"
+                   class="field w-full text-center text-base font-bold rounded p-2 mb-3 outline-none focus:ring-2 focus:ring-yellow-500">
+            <div class="relative w-64 h-64 sm:w-80 sm:h-80">
+                <svg viewBox="0 0 200 200" class="w-full h-full -rotate-90">
+                    <circle class="ring-track" cx="100" cy="100" r="90" fill="none" stroke-width="12"/>
+                    <circle id="ring" cx="100" cy="100" r="90" fill="none" stroke="#f59e0b"
+                            stroke-width="12" stroke-linecap="round"/>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span id="emoji" class="text-4xl">⏳</span>
+                    <span id="display" class="text-6xl sm:text-7xl font-bold tabular-nums">05:00</span>
+                    <span id="status" class="text-xs mt-1 opacity-70">준비</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 시간 설정 (타이머 모드 전용) -->
+        <div id="setup" class="p-4 rounded-lg border space-y-3 bg-card">
+            <label class="text-xs font-bold block">빠른 설정</label>
+            <div class="grid grid-cols-4 gap-2" id="presets"></div>
+            <label class="text-xs font-bold block">직접 입력</label>
+            <div class="flex items-center gap-2">
+                <input id="in-min" type="number" min="0" max="99" value="5" class="field w-20 text-center text-lg font-bold rounded p-2">
+                <span class="text-sm">분</span>
+                <input id="in-sec" type="number" min="0" max="59" value="0" class="field w-20 text-center text-lg font-bold rounded p-2">
+                <span class="text-sm">초</span>
+                <button id="btn-set" class="ml-auto px-4 py-2 rounded text-sm font-bold bg-slate-600 text-white">적용</button>
+            </div>
+            <label class="flex items-center gap-2 text-xs">
+                <input id="opt-sound" type="checkbox" checked class="accent-yellow-500"> 종료 알림음
+            </label>
+        </div>
+
+        <!-- 조작 버튼 -->
+        <div class="flex gap-2">
+            <button id="btn-reset" class="flex-1 py-3 rounded text-sm font-bold bg-slate-600 text-white">초기화</button>
+            <button id="btn-start" class="flex-1 py-3 rounded text-sm font-bold bg-yellow-600 hover:bg-yellow-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.4)]">시작</button>
+        </div>
+        <p class="text-center text-xs opacity-60">키보드: Space 시작/멈춤 · R 초기화 · F 전체 화면</p>
+    </main>
+
+    <script>
+        const $ = id => document.getElementById(id);
+        const body = document.body;
+        const ring = $('ring'), display = $('display'), statusEl = $('status'), emoji = $('emoji');
+        const CIRC = 2 * Math.PI * 90;
+        ring.style.strokeDasharray = CIRC;
+
+        const PRESETS = [30, 60, 180, 300, 600, 900, 1200, 2400]; // 초 단위
+        let mode = 'timer';
+        let total = 300;        // 타이머 설정 시간(초)
+        let elapsedMs = 0;      // 누적 경과 시간
+        let startedAt = null;   // 실행 중이면 시작 시각, 멈춤이면 null
+        let finished = false;
+
+        // 실제 시각 기준으로 계산하여 브라우저 탭이 백그라운드여도 오차가 생기지 않습니다.
+        const nowElapsed = () => elapsedMs + (startedAt ? Date.now() - startedAt : 0);
+
+        function fmt(sec) {
+            sec = Math.max(0, Math.ceil(sec));
+            const m = Math.floor(sec / 60), s = sec % 60;
+            return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        }
+
+        PRESETS.forEach(sec => {
+            const b = document.createElement('button');
+            b.className = 'py-2 rounded text-sm font-bold bg-slate-700 text-white hover:bg-yellow-600';
+            b.textContent = sec < 60 ? sec + '초' : (sec / 60) + '분';
+            b.onclick = () => setTotal(sec);
+            $('presets').appendChild(b);
+        });
+
+        function setTotal(sec) {
+            total = Math.max(1, sec);
+            $('in-min').value = Math.floor(total / 60);
+            $('in-sec').value = total % 60;
+            reset();
+        }
+
+        $('btn-set').onclick = () => {
+            const m = Math.min(99, Math.max(0, +$('in-min').value || 0));
+            const s = Math.min(59, Math.max(0, +$('in-sec').value || 0));
+            setTotal(m * 60 + s);
+        };
+
+        function setMode(m) {
+            mode = m;
+            document.querySelectorAll('.mode-btn').forEach(b => {
+                const on = b.dataset.mode === m;
+                b.className = 'mode-btn flex-1 py-2 rounded text-sm font-bold ' +
+                    (on ? 'bg-yellow-600 text-white' : 'bg-slate-700 text-slate-300');
+            });
+            $('setup').style.display = m === 'timer' ? '' : 'none';
+            reset();
+        }
+        document.querySelectorAll('.mode-btn').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+
+        function toggle() {
+            if (finished) { reset(); return; }
+            if (startedAt) { elapsedMs = nowElapsed(); startedAt = null; }
+            else { startedAt = Date.now(); unlockAudio(); }
+            update();
+        }
+
+        function reset() {
+            elapsedMs = 0; startedAt = null; finished = false;
+            update();
+        }
+
+        function update() {
+            const el = nowElapsed() / 1000;
+            let ratio, color = '#f59e0b';
+
+            if (mode === 'timer') {
+                const left = total - el;
+                if (left <= 0 && !finished) {
+                    finished = true; elapsedMs = total * 1000; startedAt = null;
+                    if ($('opt-sound').checked) beep();
+                }
+                const remain = Math.max(0, total - nowElapsed() / 1000);
+                display.textContent = fmt(remain);
+                ratio = remain / total;
+                // 남은 시간에 따라 색 변화: 초록 → 노랑 → 빨강
+                if (ratio > 0.5) color = '#22c55e';
+                else if (remain > 10) color = '#f59e0b';
+                else color = '#ef4444';
+                emoji.textContent = finished ? '🔔' : remain <= 10 ? '⏰' : '⏳';
+            } else {
+                display.textContent = fmt(Math.floor(el));
+                ratio = (el % 60) / 60; // 1분마다 한 바퀴
+                color = '#38bdf8';
+                emoji.textContent = '⏱️';
+            }
+
+            ring.style.strokeDashoffset = CIRC * (1 - ratio);
+            ring.style.stroke = finished ? '#ef4444' : color;
+            display.classList.toggle('blink', finished);
+            display.style.color = (mode === 'timer' && total - nowElapsed() / 1000 <= 10) ? '#ef4444' : '';
+
+            statusEl.textContent = finished ? '시간 종료!' : startedAt ? '진행 중' : (nowElapsed() > 0 ? '일시 정지' : '준비');
+            $('btn-start').textContent = finished ? '다시' : startedAt ? '멈춤' : (nowElapsed() > 0 ? '계속' : '시작');
+            document.title = (startedAt || finished ? display.textContent + ' · ' : '') + '나만의 수업 타이머';
+        }
+
+        // 알림음: 외부 파일 없이 Web Audio로 생성
+        let audioCtx = null;
+        function unlockAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+        function beep() {
+            if (!audioCtx) return;
+            [0, 0.35, 0.7, 1.4, 1.75, 2.1].forEach(t => {
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                o.frequency.value = 880;
+                o.connect(g); g.connect(audioCtx.destination);
+                const s = audioCtx.currentTime + t;
+                g.gain.setValueAtTime(0.3, s);
+                g.gain.exponentialRampToValueAtTime(0.001, s + 0.25);
+                o.start(s); o.stop(s + 0.25);
+            });
+        }
+
+        function toggleFull() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+
+        $('btn-start').onclick = toggle;
+        $('btn-reset').onclick = reset;
+        $('btn-full').onclick = toggleFull;
+        $('btn-theme').onclick = () => {
+            body.classList.toggle('theme-dark');
+            body.classList.toggle('theme-light');
+        };
+
+        document.addEventListener('keydown', e => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.code === 'Space') { e.preventDefault(); toggle(); }
+            else if (e.key === 'r' || e.key === 'R') reset();
+            else if (e.key === 'f' || e.key === 'F') toggleFull();
+        });
+
+        setInterval(() => { if (startedAt) update(); }, 200);
+        setMode('timer');
+    </script>
+</body>
+</html>
