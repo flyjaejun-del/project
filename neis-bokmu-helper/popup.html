@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>나이스 복무 입력 도우미</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <h1>나이스 복무 입력 도우미</h1>
+    <p id="tabStatus" class="status">나이스 화면을 찾는 중…</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="fill">복무 입력</button>
+    <button class="tab" data-tab="setup">칸 연결 · 설정</button>
+  </nav>
+
+  <!-- 복무 입력 -->
+  <section id="tab-fill" class="panel active">
+    <div class="row preset">
+      <select id="presetSelect"><option value="">자주 쓰는 복무 불러오기</option></select>
+      <button id="presetSave" title="지금 입력한 내용을 저장">저장</button>
+      <button id="presetDelete" title="선택한 항목 삭제">삭제</button>
+    </div>
+
+    <label>복무구분
+      <input id="type" list="typeList" placeholder="예: 연가, 조퇴, 출장">
+      <datalist id="typeList"></datalist>
+    </label>
+
+    <div class="grid2">
+      <label>시작일 <input id="startDate" type="date"></label>
+      <label>시작 시각 <input id="startTime" type="time" step="600"></label>
+      <label>종료일 <input id="endDate" type="date"></label>
+      <label>종료 시각 <input id="endTime" type="time" step="600"></label>
+    </div>
+    <p class="hint">종료일을 비우면 시작일과 같은 날로 넣습니다. 시각을 비우면 시각 칸은 건너뜁니다.</p>
+
+    <label>사유 <textarea id="reason" rows="2" placeholder="예: 개인 용무"></textarea></label>
+    <div class="grid2">
+      <label>행선지 <input id="place" placeholder="예: 자택"></label>
+      <label>비상연락처 <input id="contact" placeholder="010-0000-0000"></label>
+    </div>
+
+    <button id="fillBtn" class="primary">나이스에 입력하기</button>
+    <p class="hint center">입력만 합니다. 내용을 확인한 뒤 나이스에서 직접 상신해 주세요.</p>
+    <ul id="result" class="result"></ul>
+  </section>
+
+  <!-- 칸 연결 · 설정 -->
+  <section id="tab-setup" class="panel">
+    <div class="box">
+      <h2>1. 나이스 입력칸 연결하기 (처음 한 번)</h2>
+      <ol class="steps">
+        <li>나이스에서 <b>복무 신청 입력 화면</b>을 열어 둡니다.</li>
+        <li>아래 단추를 누르면 나이스 화면 오른쪽 아래에 안내창이 나옵니다.</li>
+        <li>안내에 따라 해당 칸을 차례로 클릭합니다.</li>
+      </ol>
+      <button id="pickBtn" class="primary">입력칸 연결 시작</button>
+    </div>
+
+    <div class="box">
+      <h2>2. 연결된 칸</h2>
+      <ul id="mappingList" class="mapping"></ul>
+      <div class="row">
+        <button id="highlightBtn">나이스 화면에 표시</button>
+        <button id="clearMapping">모두 지우기</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>3. 입력 형식</h2>
+      <label>날짜 모양
+        <select id="dateFormat">
+          <option value="YYYY-MM-DD">2026-10-12</option>
+          <option value="YYYYMMDD">20261012</option>
+          <option value="YYYY.MM.DD">2026.10.12</option>
+        </select>
+      </label>
+      <label>시각 칸 모양
+        <select id="timeMode">
+          <option value="split">시, 분이 따로 있음 (09 / 00)</option>
+          <option value="HH:MM">한 칸에 09:00</option>
+          <option value="HHMM">한 칸에 0900</option>
+        </select>
+      </label>
+      <label>칸 사이 대기 시간(밀리초)
+        <input id="delay" type="number" min="100" max="3000" step="100">
+      </label>
+      <p class="hint">입력이 중간에 빠지면 대기 시간을 늘려 보세요.</p>
+    </div>
+
+    <div class="box">
+      <h2>4. 연결 정보 나누기</h2>
+      <p class="hint">같은 교육청 나이스를 쓰는 동료에게 파일을 주면 칸 연결 과정을 건너뛸 수 있습니다.</p>
+      <div class="row">
+        <button id="exportBtn">파일로 내보내기</button>
+        <button id="importBtn">파일 가져오기</button>
+        <input id="importFile" type="file" accept="application/json" hidden>
+      </div>
+    </div>
+  </section>
+
+  <script src="fields.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
