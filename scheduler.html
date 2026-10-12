@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교사용 주간 시간표</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { transition: background 0.3s, color 0.3s; }
+        .theme-dark { background-color: #0f172a; color: #f1f5f9; }
+        .theme-light { background-color: #f8fafc; color: #1e293b; }
+        .bg-card { transition: background 0.3s; }
+        .theme-dark .bg-card { background-color: #1e293b; border-color: #334155; }
+        .theme-light .bg-card { background-color: #ffffff; border-color: #e2e8f0; }
+        .theme-dark .cell { border-color: #334155; }
+        .theme-light .cell { border-color: #e2e8f0; }
+        .theme-dark .field { background-color: #0f172a; border-color: #475569; color: #f1f5f9; }
+        .theme-light .field { background-color: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
+        .slot { min-height: 64px; cursor: pointer; }
+        .slot:hover { outline: 2px solid #fbbf24; outline-offset: -2px; }
+        .now-col { box-shadow: inset 0 3px 0 #fbbf24; }
+        .now-slot { outline: 3px solid #fbbf24 !important; outline-offset: -3px; }
+        @media print {
+            header .no-print, .no-print { display: none !important; }
+            body { background: #fff !important; color: #000 !important; }
+            .bg-card { background: #fff !important; }
+            .now-col, .now-slot { box-shadow: none !important; outline: none !important; }
+        }
+    </style>
+</head>
+<body class="theme-dark min-h-screen flex flex-col">
+
+    <header class="p-3 shadow-md border-b flex flex-wrap gap-2 justify-between items-center bg-card">
+        <h1 class="text-lg font-bold text-yellow-500">교사용 주간 시간표</h1>
+        <div class="flex flex-wrap gap-1 no-print">
+            <button id="btn-times" class="text-xs px-3 py-1 rounded bg-slate-700 text-white">교시 시간 설정</button>
+            <button id="btn-export" class="text-xs px-3 py-1 rounded bg-slate-700 text-white">내보내기</button>
+            <button id="btn-import" class="text-xs px-3 py-1 rounded bg-slate-700 text-white">불러오기</button>
+            <button id="btn-print" class="text-xs px-3 py-1 rounded bg-slate-700 text-white">인쇄</button>
+            <button id="btn-theme" class="text-xs px-3 py-1 rounded bg-slate-700 text-white">테마 변경</button>
+            <input type="file" id="file-import" accept=".json,application/json" class="hidden">
+        </div>
+    </header>
+
+    <main class="flex-grow p-2 space-y-3">
+        <div id="now-banner" class="p-3 rounded-lg border bg-card text-sm"></div>
+
+        <div class="rounded-lg border overflow-x-auto bg-card">
+            <table class="w-full min-w-[640px] text-xs text-center border-collapse table-fixed">
+                <thead id="grid-head"></thead>
+                <tbody id="grid-body"></tbody>
+            </table>
+        </div>
+
+        <div class="p-3 rounded-lg border bg-card text-xs space-y-2">
+            <div class="flex justify-between items-center">
+                <span class="font-bold">과목별 주간 시수</span>
+                <button id="btn-clear" class="no-print px-3 py-1 rounded bg-slate-600 text-white">전체 초기화</button>
+            </div>
+            <div id="summary" class="flex flex-wrap gap-2"></div>
+        </div>
+    </main>
+
+    <!-- 칸 편집 창 -->
+    <div id="modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-10">
+        <div class="w-full max-w-sm p-4 rounded-lg border bg-card space-y-3">
+            <h2 id="modal-title" class="font-bold text-yellow-500"></h2>
+            <label class="block text-xs font-medium">과목
+                <input id="f-subject" list="subject-list" class="field mt-1 w-full p-2 rounded border text-sm" placeholder="예: 과학">
+                <datalist id="subject-list"></datalist>
+            </label>
+            <label class="block text-xs font-medium">학반 / 장소
+                <input id="f-place" class="field mt-1 w-full p-2 rounded border text-sm" placeholder="예: 5-2, 과학실">
+            </label>
+            <label class="block text-xs font-medium">메모 (준비물, 단원 등)
+                <textarea id="f-memo" rows="2" class="field mt-1 w-full p-2 rounded border text-sm" placeholder="예: 비커, 알코올램프"></textarea>
+            </label>
+            <div class="flex gap-2">
+                <button id="m-delete" class="flex-1 py-2 rounded text-sm font-bold bg-slate-600 text-white">비우기</button>
+                <button id="m-cancel" class="flex-1 py-2 rounded text-sm font-bold bg-slate-600 text-white">취소</button>
+                <button id="m-save" class="flex-1 py-2 rounded text-sm font-bold bg-yellow-600 hover:bg-yellow-500 text-white">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 교시 시간 설정 창 -->
+    <div id="times-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-10">
+        <div class="w-full max-w-sm p-4 rounded-lg border bg-card space-y-3 max-h-[90vh] overflow-y-auto">
+            <h2 class="font-bold text-yellow-500">교시 시간 설정</h2>
+            <div id="times-list" class="space-y-2"></div>
+            <div class="flex gap-2">
+                <button id="t-remove" class="flex-1 py-2 rounded text-sm font-bold bg-slate-600 text-white">교시 빼기</button>
+                <button id="t-add" class="flex-1 py-2 rounded text-sm font-bold bg-slate-600 text-white">교시 더하기</button>
+            </div>
+            <div class="flex gap-2">
+                <button id="t-cancel" class="flex-1 py-2 rounded text-sm font-bold bg-slate-600 text-white">취소</button>
+                <button id="t-save" class="flex-1 py-2 rounded text-sm font-bold bg-yellow-600 hover:bg-yellow-500 text-white">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DAYS = ['월', '화', '수', '목', '금'];
+        const STORAGE_KEY = 'teacher-weekly-timetable-v1';
+        const PALETTE = ['#f59e0b', '#38bdf8', '#34d399', '#f472b6', '#a78bfa', '#fb7185', '#facc15', '#2dd4bf', '#60a5fa', '#c084fc', '#4ade80', '#fb923c'];
+        const DEFAULT_PERIODS = [
+            { start: '09:00', end: '09:40' },
+            { start: '09:50', end: '10:30' },
+            { start: '10:40', end: '11:20' },
+            { start: '11:30', end: '12:10' },
+            { start: '13:00', end: '13:40' },
+            { start: '13:50', end: '14:30' }
+        ];
+
+        const body = document.body;
+        const head = document.getElementById('grid-head');
+        const grid = document.getElementById('grid-body');
+        const modal = document.getElementById('modal');
+        const timesModal = document.getElementById('times-modal');
+        const fSubject = document.getElementById('f-subject');
+        const fPlace = document.getElementById('f-place');
+        const fMemo = document.getElementById('f-memo');
+
+        let state = load();
+        let editing = null; // { day, period }
+        let draftPeriods = [];
+
+        // 저장소 읽기/쓰기 (사생활 보호 모드 등에서 실패해도 동작하도록)
+        function load() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if (saved && Array.isArray(saved.periods) && saved.cells) return saved;
+            } catch (e) {}
+            return { periods: DEFAULT_PERIODS.map(p => ({ ...p })), cells: {}, theme: 'dark' };
+        }
+        function save() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+        }
+
+        const key = (day, period) => `${day}-${period}`;
+        const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        // 과목 이름이 같으면 항상 같은 색이 나오도록 이름으로 색을 정함
+        function colorOf(subject) {
+            let h = 0;
+            for (const ch of subject) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+            return PALETTE[h % PALETTE.length];
+        }
+
+        function toMinutes(hhmm) {
+            const [h, m] = hhmm.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        // 지금이 무슨 요일 몇 교시인지 계산
+        function nowInfo() {
+            const d = new Date();
+            const day = d.getDay() - 1; // 월=0 ... 금=4
+            const mins = d.getHours() * 60 + d.getMinutes();
+            let period = -1, next = -1;
+            state.periods.forEach((p, i) => {
+                if (mins >= toMinutes(p.start) && mins < toMinutes(p.end)) period = i;
+                if (next === -1 && mins < toMinutes(p.start)) next = i;
+            });
+            return { day: day >= 0 && day < 5 ? day : -1, period, next };
+        }
+
+        function render() {
+            const now = nowInfo();
+
+            head.innerHTML = `<tr class="bg-slate-700 text-white">
+                <th class="p-2 border border-slate-600 w-20">교시</th>
+                ${DAYS.map((d, i) => `<th class="p-2 border border-slate-600 ${i === now.day ? 'now-col text-yellow-300' : ''}">${d}</th>`).join('')}
+            </tr>`;
+
+            grid.innerHTML = state.periods.map((p, pi) => `<tr>
+                <td class="cell p-1 border font-bold">${pi + 1}교시<div class="font-normal opacity-60">${p.start}~${p.end}</div></td>
+                ${DAYS.map((_, di) => {
+                    const c = state.cells[key(di, pi)];
+                    const isNow = di === now.day && pi === now.period;
+                    if (!c) return `<td class="cell slot border p-1 opacity-40 ${isNow ? 'now-slot' : ''}" data-day="${di}" data-period="${pi}">+</td>`;
+                    const color = colorOf(c.subject);
+                    return `<td class="cell slot border p-1 ${isNow ? 'now-slot' : ''}" data-day="${di}" data-period="${pi}"
+                                style="background:${color}22; border-left:4px solid ${color}">
+                        <div class="font-bold text-sm" style="color:${color}">${escapeHtml(c.subject)}</div>
+                        ${c.place ? `<div class="opacity-80">${escapeHtml(c.place)}</div>` : ''}
+                        ${c.memo ? `<div class="opacity-60 truncate" title="${escapeHtml(c.memo)}">📝 ${escapeHtml(c.memo)}</div>` : ''}
+                    </td>`;
+                }).join('')}
+            </tr>`).join('');
+
+            renderBanner(now);
+            renderSummary();
+        }
+
+        function renderBanner(now) {
+            const banner = document.getElementById('now-banner');
+            if (now.day === -1) { banner.textContent = '오늘은 주말이에요. 다음 주 시간표를 미리 확인해 보세요.'; return; }
+            const describe = i => {
+                const c = state.cells[key(now.day, i)];
+                return c ? `${escapeHtml(c.subject)}${c.place ? ` (${escapeHtml(c.place)})` : ''}` : '비어 있음';
+            };
+            const parts = [];
+            if (now.period !== -1) parts.push(`<b class="text-yellow-500">지금 ${now.period + 1}교시</b>: ${describe(now.period)}`);
+            if (now.next !== -1) parts.push(`다음 ${now.next + 1}교시 (${state.periods[now.next].start}): ${describe(now.next)}`);
+            banner.innerHTML = parts.length ? parts.join(' · ') : `${DAYS[now.day]}요일 수업이 모두 끝났어요.`;
+        }
+
+        function renderSummary() {
+            const counts = {};
+            Object.values(state.cells).forEach(c => counts[c.subject] = (counts[c.subject] || 0) + 1);
+            const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const total = entries.reduce((s, [, n]) => s + n, 0);
+            document.getElementById('summary').innerHTML = entries.length
+                ? entries.map(([s, n]) => `<span class="px-2 py-1 rounded" style="background:${colorOf(s)}33; color:${colorOf(s)}">${escapeHtml(s)} ${n}시간</span>`).join('')
+                  + `<span class="px-2 py-1 rounded bg-slate-600 text-white">합계 ${total}시간</span>`
+                : '<span class="opacity-60">칸을 눌러 과목을 입력해 보세요.</span>';
+            document.getElementById('subject-list').innerHTML = Object.keys(counts).map(s => `<option value="${escapeHtml(s)}">`).join('');
+        }
+
+        // ---- 칸 편집 ----
+        grid.addEventListener('click', e => {
+            const td = e.target.closest('.slot');
+            if (!td) return;
+            editing = { day: +td.dataset.day, period: +td.dataset.period };
+            const c = state.cells[key(editing.day, editing.period)] || {};
+            document.getElementById('modal-title').textContent = `${DAYS[editing.day]}요일 ${editing.period + 1}교시`;
+            fSubject.value = c.subject || '';
+            fPlace.value = c.place || '';
+            fMemo.value = c.memo || '';
+            openModal(modal);
+            fSubject.focus();
+        });
+
+        document.getElementById('m-save').onclick = () => {
+            const subject = fSubject.value.trim();
+            const k = key(editing.day, editing.period);
+            if (subject) state.cells[k] = { subject, place: fPlace.value.trim(), memo: fMemo.value.trim() };
+            else delete state.cells[k];
+            commit(); closeModal(modal);
+        };
+        document.getElementById('m-delete').onclick = () => {
+            delete state.cells[key(editing.day, editing.period)];
+            commit(); closeModal(modal);
+        };
+        document.getElementById('m-cancel').onclick = () => closeModal(modal);
+        modal.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') document.getElementById('m-save').click();
+            if (e.key === 'Escape') closeModal(modal);
+        });
+
+        // ---- 교시 시간 설정 ----
+        document.getElementById('btn-times').onclick = () => {
+            draftPeriods = state.periods.map(p => ({ ...p }));
+            renderTimes();
+            openModal(timesModal);
+        };
+        function renderTimes() {
+            document.getElementById('times-list').innerHTML = draftPeriods.map((p, i) => `
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="w-10 font-bold">${i + 1}교시</span>
+                    <input type="time" data-i="${i}" data-f="start" value="${p.start}" class="field flex-1 p-1 rounded border">
+                    <span>~</span>
+                    <input type="time" data-i="${i}" data-f="end" value="${p.end}" class="field flex-1 p-1 rounded border">
+                </div>`).join('');
+        }
+        document.getElementById('times-list').addEventListener('input', e => {
+            const { i, f } = e.target.dataset;
+            if (e.target.value) draftPeriods[i][f] = e.target.value;
+        });
+        document.getElementById('t-add').onclick = () => {
+            const last = draftPeriods[draftPeriods.length - 1];
+            const start = last ? toMinutes(last.end) + 10 : 540;
+            const fmt = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+            draftPeriods.push({ start: fmt(start), end: fmt(start + 40) });
+            renderTimes();
+        };
+        document.getElementById('t-remove').onclick = () => {
+            if (draftPeriods.length > 1) { draftPeriods.pop(); renderTimes(); }
+        };
+        document.getElementById('t-cancel').onclick = () => closeModal(timesModal);
+        document.getElementById('t-save').onclick = () => {
+            state.periods = draftPeriods;
+            // 줄어든 교시의 내용은 정리
+            Object.keys(state.cells).forEach(k => {
+                if (+k.split('-')[1] >= state.periods.length) delete state.cells[k];
+            });
+            commit(); closeModal(timesModal);
+        };
+
+        // ---- 기타 버튼 ----
+        document.getElementById('btn-theme').onclick = () => {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            applyTheme(); save();
+        };
+        document.getElementById('btn-print').onclick = () => window.print();
+        document.getElementById('btn-clear').onclick = () => {
+            if (confirm('입력한 시간표를 모두 지울까요?')) { state.cells = {}; commit(); }
+        };
+        document.getElementById('btn-export').onclick = () => {
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = '주간시간표.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        };
+        document.getElementById('btn-import').onclick = () => document.getElementById('file-import').click();
+        document.getElementById('file-import').onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            file.text().then(text => {
+                try {
+                    const data = JSON.parse(text);
+                    if (!Array.isArray(data.periods) || typeof data.cells !== 'object') throw new Error();
+                    state = { ...state, periods: data.periods, cells: data.cells };
+                    commit();
+                } catch (err) {
+                    alert('시간표 파일 형식이 올바르지 않아요.');
+                }
+                e.target.value = '';
+            });
+        };
+
+        function openModal(m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        function closeModal(m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        function applyTheme() {
+            body.classList.toggle('theme-dark', state.theme === 'dark');
+            body.classList.toggle('theme-light', state.theme !== 'dark');
+        }
+        function commit() { save(); render(); }
+
+        applyTheme();
+        render();
+        setInterval(render, 30000); // 30초마다 현재 교시 표시 갱신
+    </script>
+</body>
+</html>
